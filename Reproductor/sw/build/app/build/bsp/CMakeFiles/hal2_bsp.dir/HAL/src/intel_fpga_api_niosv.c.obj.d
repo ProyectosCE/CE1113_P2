@@ -1,0 +1,19 @@
+bsp/CMakeFiles/hal2_bsp.dir/HAL/src/intel_fpga_api_niosv.c.obj: \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/src/intel_fpga_api_niosv.c \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/intel_fpga_api_cmn_inf.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stdbool.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stdint.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/stdint.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_default_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/features.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_newlib_version.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_intsup.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_stdint.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stdarg.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/intel_fpga_platform.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/intel_fpga_platform_niosv.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stddef.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/intel_fpga_platform_api_niosv.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./system.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./linker.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/intel_fpga_api_cmn_msg.h

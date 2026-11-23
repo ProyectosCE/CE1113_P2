@@ -1,0 +1,9 @@
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/CMakeFiles/app.elf.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/CMakeFiles/create-objdump.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/CMakeFiles/niosv-stack-report.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/CMakeFiles/create-hex.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/CMakeFiles/edit_cache.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/CMakeFiles/rebuild_cache.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/bsp/CMakeFiles/hal2_bsp.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/bsp/CMakeFiles/edit_cache.dir
+/home/jecampos/CE1113_P2/Reproductor/sw/build/app/build/bsp/CMakeFiles/rebuild_cache.dir

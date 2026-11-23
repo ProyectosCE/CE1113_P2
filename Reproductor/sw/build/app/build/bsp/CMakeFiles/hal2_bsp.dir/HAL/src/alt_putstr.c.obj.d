@@ -1,0 +1,27 @@
+bsp/CMakeFiles/hal2_bsp.dir/HAL/src/alt_putstr.c.obj: \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/src/alt_putstr.c \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/stdio.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_ansi.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/newlib.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_newlib_version.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/config.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/ieeefp.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/features.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/cdefs.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_default_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stddef.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stdarg.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/reent.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_ansi.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/lock.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/stdio.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/string.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_locale.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/strings.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/string.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./system.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./linker.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/alt_driver.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/alt_stdio.h

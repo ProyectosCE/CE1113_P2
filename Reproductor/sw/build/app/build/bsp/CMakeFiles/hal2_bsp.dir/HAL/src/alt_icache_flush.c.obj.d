@@ -1,0 +1,23 @@
+bsp/CMakeFiles/hal2_bsp.dir/HAL/src/alt_icache_flush.c.obj: \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/src/alt_icache_flush.c \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./system.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./linker.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/alt_cache.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/stdlib.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/ieeefp.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_ansi.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/newlib.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_newlib_version.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/config.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/features.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stddef.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/reent.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_ansi.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/cdefs.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_default_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/lock.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/stdlib.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/alloca.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/alt_types.h

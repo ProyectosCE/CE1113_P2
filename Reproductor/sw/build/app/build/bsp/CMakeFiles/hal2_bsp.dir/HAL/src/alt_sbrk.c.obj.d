@@ -1,0 +1,34 @@
+bsp/CMakeFiles/hal2_bsp.dir/HAL/src/alt_sbrk.c.obj: \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/src/alt_sbrk.c \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_ansi.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/newlib.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/_newlib_version.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/config.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/ieeefp.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/features.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/cdefs.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_default_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/lib/gcc/riscv32-unknown-elf/13.2.0/include/stddef.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_types.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_stdint.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/endian.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/_endian.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/select.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_sigset.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_timeval.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/timespec.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_timespec.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/_pthreadtypes.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/sys/sched.h \
+ /opt/altera_lite/25.1std/riscfree/toolchain/riscv32-unknown-elf/riscv32-unknown-elf/include/machine/types.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/os/alt_syscall.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/alt_irq.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/intel_niosv.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/alt_types.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/io.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./system.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/./linker.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/alt_types.h \
+ /home/jecampos/CE1113_P2/Reproductor/sw/bsp/HAL/inc/sys/alt_stack.h
