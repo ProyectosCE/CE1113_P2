@@ -1,16 +1,16 @@
 # Flujo por defecto (descarga por JTAG):
-#   make hw     -> qsys -> qip -> proyecto -> output/hello.sof (RAM sin firmware)
+#   make hw     -> qsys -> qip -> proyecto -> output/reproductor.sof (RAM sin firmware)
 #   make sw     -> BSP + software (crea sw/ y un hola mundo si no existen)
-#   make prog   -> programa la FPGA con output/hello.sof
+#   make prog   -> programa la FPGA con output/reproductor.sof
 #   make dl     -> resetea el CPU, descarga el ELF por JTAG y lo ejecuta
 #   make run    -> abre la consola JTAG UART
 # Alternativa (firmware dentro del bitstream, sin depurador):
-#   make bake     -> output/hello_fw.sof (scripts/nios/bake.sh; no re-sintetiza)
-#   make prog-fw  -> programa hello_fw.sof (el CPU arranca solo; luego make run)
-# Variante sin modulo de debug (solo bake): make SYS=hello_nodebug all bake prog-fw
+#   make bake     -> output/reproductor_fw.sof (scripts/nios/bake.sh; no re-sintetiza)
+#   make prog-fw  -> programa reproductor_fw.sof (el CPU arranca solo; luego make run)
+# Variante sin modulo de debug (solo bake): make SYS=reproductor_nodebug all bake prog-fw
 S   := ../scripts
-SYS ?= hello
-ifeq ($(SYS),hello)
+SYS ?= reproductor
+ifeq ($(SYS),reproductor)
 OUT := output
 SW  := sw
 SRC := src
@@ -38,6 +38,6 @@ bake: sw
 prog-fw: $(OUT)/$(SYS)_fw.sof
 	$(S)/general/program.sh $(OUT)/$(SYS)_fw.sof
 clean:
-	rm -rf output output-* hello hello_nodebug hello.sopcinfo hello_nodebug.sopcinfo .qsys_edit
+	rm -rf output output-* reproductor reproductor_nodebug reproductor.sopcinfo reproductor_nodebug.sopcinfo .qsys_edit
 	rm -rf sw/bsp sw/build sw-*
 .PHONY: all hw sw prog dl run bake prog-fw clean
