@@ -199,3 +199,5 @@ questa_lic.dat
 # ---- Carpetas que qsys-generate crea junto a cada .qsys ---------------------
 /Reproductor/reproductor/
 /Reproductor/hello/
+/Reproductor/reproductor_nodebug/
+/Reproductor/hello_nodebug/
