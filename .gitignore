@@ -31,3 +31,6 @@ dsp/audio/*
 *.swp
 .DS_Store
 Thumbs.db
+
+# Salidas generadas por el modelo DSP (gráficas, audios filtrados, tablas)
+dsp/output/
