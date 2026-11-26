@@ -1,4 +1,4 @@
-# DE1-SoC - pines del sistema "reproductor" (HPS, LEDs, audio)
+# DE1-SoC - pines del sistema "reproductor" (HPS, LEDs, audio, botones, switches, ADC)
 # Los pines del HPS (memory_*, hps_io_*) son dedicados: no se asignan aqui.
 # Las asignaciones de la DDR3 las agrega hps_sdram_p0_pin_assignments.tcl (lo corre "make hw").
 
@@ -33,3 +33,35 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_DACDAT
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_DACLRCK
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to av_config_SCLK
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to av_config_SDAT
+
+# ---- Botones KEY[3:0] (activos en bajo, con antirrebote en la placa) ----
+set_location_assignment PIN_AA14 -to keys_export[0]
+set_location_assignment PIN_AA15 -to keys_export[1]
+set_location_assignment PIN_W15  -to keys_export[2]
+set_location_assignment PIN_Y16  -to keys_export[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keys_export[*]
+
+# ---- Interruptores SW[9:0] ----
+set_location_assignment PIN_AB12 -to switches_export[0]
+set_location_assignment PIN_AC12 -to switches_export[1]
+set_location_assignment PIN_AF9  -to switches_export[2]
+set_location_assignment PIN_AF10 -to switches_export[3]
+set_location_assignment PIN_AD11 -to switches_export[4]
+set_location_assignment PIN_AD12 -to switches_export[5]
+set_location_assignment PIN_AE11 -to switches_export[6]
+set_location_assignment PIN_AC9  -to switches_export[7]
+set_location_assignment PIN_AD10 -to switches_export[8]
+set_location_assignment PIN_AE12 -to switches_export[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to switches_export[*]
+
+# ---- ADC LTC2308 (potenciometro de volumen en CH0) ----
+# Puertos que genera el ADC Controller for DE-series Boards (variante DE1-SoC).
+# En el LTC2308, adc_cs_n hace de CONVST. Confirmar contra el manual de Terasic (rev. F).
+set_location_assignment PIN_AJ4 -to adc_cs_n
+set_location_assignment PIN_AK2 -to adc_sclk
+set_location_assignment PIN_AK4 -to adc_din
+set_location_assignment PIN_AK3 -to adc_dout
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_cs_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_sclk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_din
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_dout

@@ -9,6 +9,27 @@
    categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
+   element adc
+   {
+      datum _sortIndex
+      {
+         value = "9";
+         type = "int";
+      }
+   }
+   element adc.adc_slave
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "16384";
+         type = "String";
+      }
+   }
    element audio
    {
       datum _sortIndex
@@ -96,6 +117,27 @@
          type = "String";
       }
    }
+   element keys
+   {
+      datum _sortIndex
+      {
+         value = "7";
+         type = "int";
+      }
+   }
+   element keys.s1
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "80";
+         type = "String";
+      }
+   }
    element leds
    {
       datum _sortIndex
@@ -114,6 +156,27 @@
       datum baseAddress
       {
          value = "0";
+         type = "String";
+      }
+   }
+   element switches
+   {
+      datum _sortIndex
+      {
+         value = "8";
+         type = "int";
+      }
+   }
+   element switches.s1
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "64";
          type = "String";
       }
    }
@@ -138,6 +201,7 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
+ <interface name="adc" internal="adc.external_interface" type="conduit" dir="end" />
  <interface
    name="audio"
    internal="audio.external_interface"
@@ -156,11 +220,29 @@
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface name="hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
  <interface
+   name="keys"
+   internal="keys.external_connection"
+   type="conduit"
+   dir="end" />
+ <interface
    name="leds"
    internal="leds.external_connection"
    type="conduit"
    dir="end" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
+ <interface
+   name="switches"
+   internal="switches.external_connection"
+   type="conduit"
+   dir="end" />
+ <module name="adc" kind="altera_up_avalon_adc" version="18.0" enabled="1">
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="50000000" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="board" value="DE1-SoC" />
+  <parameter name="board_rev" value="F or newer" />
+  <parameter name="numch_" value="1" />
+  <parameter name="sclk_freq" value="12.5" />
+ </module>
  <module name="audio" kind="altera_up_avalon_audio" version="18.0" enabled="1">
   <parameter name="AUTO_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
@@ -758,6 +840,20 @@
   <parameter name="writeBufferDepth" value="64" />
   <parameter name="writeIRQThreshold" value="8" />
  </module>
+ <module name="keys" kind="altera_avalon_pio" version="25.1" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="true" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="true" />
+  <parameter name="clockRate" value="50000000" />
+  <parameter name="direction" value="Input" />
+  <parameter name="edgeType" value="FALLING" />
+  <parameter name="generateIRQ" value="true" />
+  <parameter name="irqType" value="EDGE" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="4" />
+ </module>
  <module name="leds" kind="altera_avalon_pio" version="25.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
   <parameter name="bitModifyingOutReg" value="false" />
@@ -772,6 +868,29 @@
   <parameter name="simDrivenValue" value="0" />
   <parameter name="width" value="10" />
  </module>
+ <module name="switches" kind="altera_avalon_pio" version="25.1" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="50000000" />
+  <parameter name="direction" value="Input" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="10" />
+ </module>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="adc.adc_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x4000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
  <connection
    kind="avalon"
    version="25.1"
@@ -808,10 +927,31 @@
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="keys.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0050" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="switches.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0040" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
  <connection kind="clock" version="25.1" start="clk_0.clk" end="jtag_uart_0.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="leds.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="av_config.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="audio.clk" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="keys.clk" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="switches.clk" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="adc.clk" />
  <connection
    kind="clock"
    version="25.1"
@@ -828,6 +968,9 @@
    start="hps_0.f2h_irq0"
    end="audio.interrupt">
   <parameter name="irqNumber" value="0" />
+ </connection>
+ <connection kind="interrupt" version="25.1" start="hps_0.f2h_irq0" end="keys.irq">
+  <parameter name="irqNumber" value="1" />
  </connection>
  <connection
    kind="reset"
@@ -846,6 +989,13 @@
    start="clk_0.clk_reset"
    end="av_config.reset" />
  <connection kind="reset" version="25.1" start="clk_0.clk_reset" end="audio.reset" />
+ <connection kind="reset" version="25.1" start="clk_0.clk_reset" end="keys.reset" />
+ <connection
+   kind="reset"
+   version="25.1"
+   start="clk_0.clk_reset"
+   end="switches.reset" />
+ <connection kind="reset" version="25.1" start="clk_0.clk_reset" end="adc.reset" />
  <connection
    kind="reset"
    version="25.1"
