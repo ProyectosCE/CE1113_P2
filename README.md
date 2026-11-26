@@ -21,13 +21,47 @@ Todos los scripts viven en `scripts/` (los ejemplos solo tienen Makefiles), por 
 | `build-sw.sh` | Desde un `.sopcinfo`: crea (si falta) el proyecto de software, genera el BSP y compila el ELF |
 | `download.sh` | Descarga un `.elf` al Nios V por JTAG y lo ejecuta |
 
+**`scripts/hps/`** (ARM Cortex-A9 del HPS)
+
+| Script | Funcion |
+|---|---|
+| `gdb-server.sh` | Arranca el gdb-server de Ashling (incluido en Quartus) para el Cortex-A9, puerto 3334 |
+
 Plantilla de pines: `de1-soc-pines.qsf` (CLOCK, KEY, SW, LEDR, HEX0-5).
 
 ## Requisitos
 
 - Quartus instalado en `~/altera_lite/25.1std` (otra ruta: `export ALTERA_ROOT=/ruta/a/altera_lite/25.1std`).
 - DE1-SoC conectada por el USB-Blaster (puerto USB-Blaster II/USB de la placa) y encendida.
-- Reglas udev del USB-Blaster (`/etc/udev/rules.d/51-usbblaster.rules`, ya presentes).
+- Reglas udev del USB-Blaster en `/etc/udev/rules.d/51-usbblaster.rules` (ver abajo; sin ellas
+  `jtagconfig` solo funciona con `sudo`).
+
+### Reglas udev del USB-Blaster (una vez por PC)
+
+Sin este archivo, el usuario normal no tiene permiso sobre el cable y `jtagconfig` responde
+`No JTAG hardware available`, aunque `lsusb` muestre `09fb:6810` o `09fb:6010` y
+`sudo jtagconfig` sí vea la placa.
+
+```bash
+sudo tee /etc/udev/rules.d/51-usbblaster.rules > /dev/null <<'EOF'
+# USB-Blaster
+SUBSYSTEM=="usb", ATTRS{idVendor}=="09fb", ATTRS{idProduct}=="6001", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="09fb", ATTRS{idProduct}=="6002", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="09fb", ATTRS{idProduct}=="6003", MODE="0666"
+# USB-Blaster II (6810 = sin firmware, 6010 = con firmware cargado)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="09fb", ATTRS{idProduct}=="6010", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="09fb", ATTRS{idProduct}=="6810", MODE="0666"
+EOF
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
+Luego desconecte y vuelva a conectar el cable (o apague y encienda la placa), y verifique como
+usuario normal:
+
+```bash
+sudo killall jtagd     # por si quedo un jtagd corriendo como root
+jtagconfig             # debe listar 4BA00477 SOCVHPS y 02D120DD 5CSE(BA5|MA5)
+```
 
 ## Uso
 
@@ -131,10 +165,32 @@ incluya el IP *JTAG UART*.
 
 ## Problemas comunes
 
-- **"No se detecta el USB-Blaster"**: revise cable y alimentacion; pruebe `jtagconfig`.
-  Si falla, reinicie el demonio: `jtagconfig --stop` (o `killall jtagd`) y reintente.
+- **"No se detecta el USB-Blaster" / `No JTAG hardware available`**:
+  1. `lsusb | grep -i 09fb`: si no aparece nada, revise alimentacion y que el cable este en el
+     conector USB-Blaster (tipo B, junto a la alimentacion), no en el mini-USB de la UART.
+  2. Si aparece pero `jtagconfig` falla y `sudo $QUARTUS_ROOTDIR/bin/jtagconfig` funciona, faltan
+     las reglas udev (ver *Requisitos*). Despues de probar con `sudo`, haga `sudo killall jtagd`:
+     un `jtagd` de root impide que el usuario normal se conecte.
+  3. Si no, reinicie el demonio: `jtagconfig --stop` (o `killall jtagd`) y reintente.
 - **El terminal no muestra nada**: confirme que la FPGA esta programada y que la
   instancia coincide con la de su JTAG UART.
+
+### Depurar el ARM (HPS) por JTAG
+
+Requiere `sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi gdb-multiarch` (el toolchain
+`Arm/` de RiscFree solo trae `aarch64`, que no sirve para el Cortex-A9). El gdb-server si viene con
+Quartus.
+
+```bash
+scripts/hps/gdb-server.sh                 # terminal 1: se queda esperando a gdb (Q para salir)
+gdb-multiarch -x cargar.gdb programa.elf  # terminal 2: ver tests/inc0-hps/cargar.gdb
+```
+
+- Sin SD, el BootROM deja activo un watchdog que reinicia el HPS a los pocos segundos: hay que
+  apagarlo desde gdb antes del `load` (lo hace `cargar.gdb`).
+- No repita `target remote` en una sesion ya conectada: el gdb-server queda colgado. Si pasa,
+  cierre gdb, `Q` en el gdb-server, vuelva a arrancarlo y reconecte.
+- Paso a paso y resultados: `docs/hardware/incremento-0-jtag-arm.md`.
 
 ### Descargar un ELF a mano
 

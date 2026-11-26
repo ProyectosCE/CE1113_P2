@@ -1,43 +1,51 @@
-# Flujo por defecto (descarga por JTAG):
-#   make hw     -> qsys -> qip -> proyecto -> output/reproductor.sof (RAM sin firmware)
-#   make sw     -> BSP + software (crea sw/ y un hola mundo si no existen)
-#   make prog   -> programa la FPGA con output/reproductor.sof
-#   make dl     -> resetea el CPU, descarga el ELF por JTAG y lo ejecuta
-#   make run    -> abre la consola JTAG UART
-# Alternativa (firmware dentro del bitstream, sin depurador):
-#   make bake     -> output/reproductor_fw.sof (scripts/nios/bake.sh; no re-sintetiza)
-#   make prog-fw  -> programa reproductor_fw.sof (el CPU arranca solo; luego make run)
-# Variante sin modulo de debug (solo bake): make SYS=reproductor_nodebug all bake prog-fw
-S   := ../scripts
-SYS ?= reproductor
-ifeq ($(SYS),reproductor)
-OUT := output
-SW  := sw
-SRC := src
-else
-OUT := output-$(SYS)
-SW  := sw-$(SYS)
-SRC := ../sw/src
-endif
+# Reproductor de audio - DE1-SoC (HPS bare metal + perifericos en la FPGA)
+# Fase 1: todo se carga por JTAG.
+#
+#   make qsys    -> abre reproductor.qsys en Platform Designer
+#   make gen     -> solo genera el sistema (qsys-generate); sirve para ver errores del .qsys
+#   make hw      -> genera, crea el proyecto, asigna pines DDR3 del HPS y compila
+#                   -> output/reproductor.sof
+#   make prog    -> programa la FPGA (dispositivo 2 de la cadena JTAG; el 1 es el HPS)
+#   make report  -> resumen de recursos del fitter
+#   make clean   -> borra lo generado (no toca el .qsys ni las fuentes)
+#
+# El software del ARM (compilar y cargar por JTAG) se agrega en el siguiente incremento,
+# segun el resultado del incremento 0 (ver ../docs/hardware/guia-platform-designer.md).
+SHELL  := /bin/bash
+S      := ../scripts
+SYS    := reproductor
+OUT    := output
+DEVICE := 5CSEMA5F31C6
+ENV    := source $(S)/general/env.sh >/dev/null &&
+# Script que genera Platform Designer con las asignaciones de los pines DDR3 del HPS.
+# Hay que correrlo despues de Analysis & Synthesis y antes del fitter.
+PIN_TCL := $(CURDIR)/$(SYS)/synthesis/submodules/hps_sdram_p0_pin_assignments.tcl
 
-all: hw sw
+all: hw
+
+qsys:
+	$(ENV) qsys-edit $(SYS).qsys &
+
+gen:
+	$(ENV) qsys-generate $(SYS).qsys --synthesis=VERILOG --family="Cyclone V" \
+	    --part=$(DEVICE) --output-directory=$(SYS)
+
 hw: $(OUT)/$(SYS).sof
 $(OUT)/$(SYS).sof: $(SYS).qsys pines.qsf timing.sdc
-	$(S)/general/build.sh -t $(SYS) -p pines.qsf -q $(SYS).qsys -m zero -o $(OUT) timing.sdc
-$(SYS).sopcinfo: $(OUT)/$(SYS).sof
-sw: $(SYS).sopcinfo
-	$(S)/nios/build-sw.sh $(SYS).sopcinfo $(SW) -s $(SRC)
+	$(S)/general/build.sh -C -p pines.qsf -q $(SYS).qsys -o $(OUT) timing.sdc
+	$(ENV) cd $(OUT) && quartus_map $(SYS) > map.log
+	$(ENV) cd $(OUT) && quartus_sta -t $(PIN_TCL) $(SYS) > pin_assign.log
+	$(S)/general/build.sh $(OUT)/$(SYS).qpf
+	@SOF=$$(ls $(OUT)/output_files/$(SYS).sof $(OUT)/$(SYS).sof 2>/dev/null | head -1); \
+	  [ "$$SOF" = "$(OUT)/$(SYS).sof" ] || cp "$$SOF" $(OUT)/$(SYS).sof
+
 prog: $(OUT)/$(SYS).sof
 	$(S)/general/program.sh $(OUT)/$(SYS).sof
-dl: sw
-	$(S)/nios/download.sh $(SW)/build/app/build/app.elf
-run:
-	$(S)/general/terminal.sh
-bake: sw
-	$(S)/nios/bake.sh $(OUT)/$(SYS).qpf $(SW)/build/app/build/onchip_memory2_0.hex
-prog-fw: $(OUT)/$(SYS)_fw.sof
-	$(S)/general/program.sh $(OUT)/$(SYS)_fw.sof
+
+report:
+	@cat $$(ls $(OUT)/output_files/$(SYS).fit.summary $(OUT)/$(SYS).fit.summary 2>/dev/null | head -1)
+
 clean:
-	rm -rf output output-* reproductor reproductor_nodebug reproductor.sopcinfo reproductor_nodebug.sopcinfo .qsys_edit
-	rm -rf sw/bsp sw/build sw-*
-.PHONY: all hw sw prog dl run bake prog-fw clean
+	rm -rf $(OUT) $(SYS) $(SYS).sopcinfo
+
+.PHONY: all qsys gen hw prog report clean
