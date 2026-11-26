@@ -9,6 +9,56 @@
    categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
+   element audio
+   {
+      datum _sortIndex
+      {
+         value = "6";
+         type = "int";
+      }
+   }
+   element audio.avalon_audio_slave
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "12352";
+         type = "String";
+      }
+   }
+   element audio_pll_0
+   {
+      datum _sortIndex
+      {
+         value = "4";
+         type = "int";
+      }
+   }
+   element av_config
+   {
+      datum _sortIndex
+      {
+         value = "5";
+         type = "int";
+      }
+   }
+   element av_config.avalon_av_config_slave
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "12288";
+         type = "String";
+      }
+   }
    element clk_0
    {
       datum _sortIndex
@@ -88,6 +138,21 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
+ <interface
+   name="audio"
+   internal="audio.external_interface"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="audio_pll_clk"
+   internal="audio_pll_0.audio_clk"
+   type="clock"
+   dir="start" />
+ <interface
+   name="av_config"
+   internal="av_config.external_interface"
+   type="conduit"
+   dir="end" />
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface name="hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
  <interface
@@ -96,6 +161,47 @@
    type="conduit"
    dir="end" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
+ <module name="audio" kind="altera_up_avalon_audio" version="18.0" enabled="1">
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="50000000" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="audio_in" value="false" />
+  <parameter name="audio_out" value="true" />
+  <parameter name="avalon_bus_type" value="Memory Mapped" />
+  <parameter name="dw" value="16" />
+ </module>
+ <module
+   name="audio_pll_0"
+   kind="altera_up_avalon_audio_pll"
+   version="18.0"
+   enabled="1">
+  <parameter name="AUTO_DEVICE" value="5CSEMA5F31C6" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
+  <parameter name="audio_clk_freq" value="11.2896" />
+  <parameter name="device_family" value="Cyclone V" />
+  <parameter name="gui_refclk" value="50.0" />
+ </module>
+ <module
+   name="av_config"
+   kind="altera_up_avalon_audio_and_video_config"
+   version="18.0"
+   enabled="1">
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="50000000" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="audio_in" value="Line In to ADC" />
+  <parameter name="bit_length" value="16" />
+  <parameter name="board" value="DE10-Standard" />
+  <parameter name="d5m_resolution" value="2592 x 1944" />
+  <parameter name="dac_enable" value="true" />
+  <parameter name="data_format" value="Left Justified" />
+  <parameter name="device">On-Board Peripherals</parameter>
+  <parameter name="eai" value="true" />
+  <parameter name="exposure" value="false" />
+  <parameter name="line_in_bypass" value="false" />
+  <parameter name="mic_attenuation" value="-6dB" />
+  <parameter name="mic_bypass" value="false" />
+  <parameter name="sampling_rate" value="48 kHz" />
+  <parameter name="video_format" value="NTSC" />
+ </module>
  <module name="clk_0" kind="clock_source" version="25.1" enabled="1">
   <parameter name="clockFrequency" value="50000000" />
   <parameter name="clockFrequencyKnown" value="true" />
@@ -491,7 +597,7 @@
   <parameter name="SPIS1_Mode" value="N/A" />
   <parameter name="SPIS1_PinMuxing" value="Unused" />
   <parameter name="STARVE_LIMIT" value="10" />
-  <parameter name="STM_Enable" value="true" />
+  <parameter name="STM_Enable" value="false" />
   <parameter name="SYS_INFO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="TEST_Enable" value="false" />
   <parameter name="TIMING_BOARD_AC_EYE_REDUCTION_H" value="0.0" />
@@ -670,6 +776,24 @@
    kind="avalon"
    version="25.1"
    start="hps_0.h2f_lw_axi_master"
+   end="audio.avalon_audio_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x3040" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="av_config.avalon_av_config_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x3000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
    end="jtag_uart_0.avalon_jtag_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x1000" />
@@ -686,17 +810,42 @@
  </connection>
  <connection kind="clock" version="25.1" start="clk_0.clk" end="jtag_uart_0.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="leds.clk" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="av_config.clk" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="audio.clk" />
  <connection
    kind="clock"
    version="25.1"
    start="clk_0.clk"
    end="hps_0.h2f_lw_axi_clock" />
  <connection
+   kind="clock"
+   version="25.1"
+   start="clk_0.clk"
+   end="audio_pll_0.ref_clk" />
+ <connection
+   kind="interrupt"
+   version="25.1"
+   start="hps_0.f2h_irq0"
+   end="audio.interrupt">
+  <parameter name="irqNumber" value="0" />
+ </connection>
+ <connection
+   kind="reset"
+   version="25.1"
+   start="clk_0.clk_reset"
+   end="audio_pll_0.ref_reset" />
+ <connection
    kind="reset"
    version="25.1"
    start="clk_0.clk_reset"
    end="jtag_uart_0.reset" />
  <connection kind="reset" version="25.1" start="clk_0.clk_reset" end="leds.reset" />
+ <connection
+   kind="reset"
+   version="25.1"
+   start="clk_0.clk_reset"
+   end="av_config.reset" />
+ <connection kind="reset" version="25.1" start="clk_0.clk_reset" end="audio.reset" />
  <connection
    kind="reset"
    version="25.1"

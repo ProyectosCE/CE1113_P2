@@ -8,10 +8,8 @@ digitales (al menos uno en hardware propio), control por botones con interrupcio
 periféricos de la FPGA (audio, botones, switches, ADC, 7 segmentos, filtro DSP propio) cuelgan del
 puente lightweight HPS-to-FPGA (`0xFF20_0000`).
 
-> Estado: incremento 0 ok (código cargado y ejecutado en el ARM por JTAG; corre en la OCRAM de
-> 64 KB, ver [`docs/hardware/incremento-0-jtag-arm.md`](../docs/hardware/incremento-0-jtag-arm.md)).
-> **Siguiente: incremento 1** (HPS + puente LW + LEDs). Plan completo en
-> [`docs/hardware/guia-platform-designer.md`](../docs/hardware/guia-platform-designer.md).
+> Estado: incrementos 0, 1 y 2 ok (ARM cargado por JTAG en la OCRAM; HPS + puente LW + LEDs; audio
+> con el codec a 44.1 kHz, ver [`tests/inc2-audio/`](../tests/inc2-audio/README.md)).
 >
 > Placa: **DE1-SoC rev. F/G** (ADC LTC2308, no AD7928 como dice el enunciado).
 
@@ -59,12 +57,12 @@ Qué hace `make hw`:
 2. `quartus_map` (Analysis & Synthesis).
 3. `quartus_sta -t .../hps_sdram_p0_pin_assignments.tcl` agrega al proyecto las asignaciones de los
    pines de la DDR3 del HPS. Sin este paso el fitter falla con errores de I/O en `memory_*`.
-4. Compilación completa → `output/reproductor.sof`.
+4. Compilación completa -> `output/reproductor.sof`.
 
 Logs: `output/map.log`, `output/pin_assign.log`, `output/build.log`.
 
 Si el paso 3 falla desde la terminal, abra `output/reproductor.qpf` en Quartus, corra *Analysis &
-Synthesis*, luego **Tools > Tcl Scripts** → `hps_sdram_p0_pin_assignments.tcl` → Run, y compile.
+Synthesis*, luego **Tools > Tcl Scripts** -> `hps_sdram_p0_pin_assignments.tcl` -> Run, y compile.
 
 ## Probar el incremento 1
 
@@ -80,17 +78,18 @@ set *(unsigned int*)0xFF200000 = 0x3FF    # enciende LEDR[9:0]
 
 ## Mapa de memoria (puente LW, base `0xFF20_0000`)
 
-| Periférico | Dirección | Incremento |
-|---|---|---|
-| `leds` (PIO, 10 bits) | `0xFF20_0000` | 1 |
-| `hex_ctrl` (propio) | `0xFF20_0020` | 5 |
-| `switches` (PIO) | `0xFF20_0040` | 3 |
-| `keys` (PIO + IRQ) | `0xFF20_0050` | 3 |
-| `jtag_uart_0` | `0xFF20_1000` | 1 |
-| `av_config` | `0xFF20_3000` | 2 |
-| `audio` | `0xFF20_3040` | 2 |
-| `adc` | `0xFF20_4000` | 4 |
-| `dsp_filter` (propio) | `0xFF20_5000` | 5 |
+| Periférico | Dirección | IRQ (`f2h_irq0` -> GIC ID) | Incremento |
+|---|---|---|---|
+| `leds` (PIO, 10 bits) | `0xFF20_0000` | — | 1 |
+| `hex_ctrl` (propio) | `0xFF20_0020` | — | 4 |
+| `switches` (PIO) | `0xFF20_0040` | — | 3 |
+| `keys` (PIO + IRQ) | `0xFF20_0050` | 1 -> 73 | 3 |
+| `jtag_uart_0` | `0xFF20_1000` | — | 1 |
+| `av_config` | `0xFF20_3000` | — | 2 |
+| `audio` | `0xFF20_3040` | 0 -> 72 | 2 |
+| `adc` | `0xFF20_4000` | — | 3 |
+| `dsp_filter` (propio) | `0xFF20_5000` | — | 4 |
+| VGA (Character Buffer) | por definir | — | 5 |
 
 ## Limpiar
 

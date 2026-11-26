@@ -1,4 +1,4 @@
-# DE1-SoC - pines del sistema "reproductor" (incremento 1: HPS + LEDs)
+# DE1-SoC - pines del sistema "reproductor" (HPS, LEDs, audio)
 # Los pines del HPS (memory_*, hps_io_*) son dedicados: no se asignan aqui.
 # Las asignaciones de la DDR3 las agrega hps_sdram_p0_pin_assignments.tcl (lo corre "make hw").
 
@@ -18,3 +18,18 @@ set_location_assignment PIN_W20 -to leds_export[7]
 set_location_assignment PIN_W21 -to leds_export[8]
 set_location_assignment PIN_Y21 -to leds_export[9]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to leds_export[*]
+
+# ---- Codec de audio WM8731 ----
+# Confirmar contra la tabla de pines de audio del manual de Terasic de la DE1-SoC.
+set_location_assignment PIN_G7  -to audio_pll_clk_clk
+set_location_assignment PIN_H7  -to audio_BCLK
+set_location_assignment PIN_J7  -to audio_DACDAT
+set_location_assignment PIN_H8  -to audio_DACLRCK
+set_location_assignment PIN_J12 -to av_config_SCLK
+set_location_assignment PIN_K12 -to av_config_SDAT
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_pll_clk_clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_BCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_DACDAT
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_DACLRCK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to av_config_SCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to av_config_SDAT
