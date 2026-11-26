@@ -19,6 +19,8 @@ DEVICE := 5CSEMA5F31C6
 ENV    := source $(S)/general/env.sh >/dev/null &&
 # Script que genera Platform Designer con las asignaciones de los pines DDR3 del HPS.
 # Hay que correrlo despues de Analysis & Synthesis y antes del fitter.
+# Muestra solo errores, warnings criticos y el resultado de cada herramienta
+FILTRO := { grep -E "^(Error|Critical Warning)|was (successful|unsuccessful)" || true; }
 PIN_TCL := $(CURDIR)/$(SYS)/synthesis/submodules/hps_sdram_p0_pin_assignments.tcl
 
 all: hw
@@ -33,8 +35,10 @@ gen:
 hw: $(OUT)/$(SYS).sof
 $(OUT)/$(SYS).sof: $(SYS).qsys pines.qsf timing.sdc
 	$(S)/general/build.sh -C -p pines.qsf -q $(SYS).qsys -o $(OUT) timing.sdc
-	$(ENV) cd $(OUT) && quartus_map $(SYS) > map.log
-	$(ENV) cd $(OUT) && quartus_sta -t $(PIN_TCL) $(SYS) > pin_assign.log
+	@echo ">> Analysis & Synthesis (varios minutos con el HPS; log completo: $(OUT)/map.log)"
+	set -o pipefail; $(ENV) cd $(OUT) && quartus_map $(SYS) 2>&1 | tee map.log | $(FILTRO)
+	@echo ">> Asignando pines de la DDR3 del HPS (log: $(OUT)/pin_assign.log)"
+	set -o pipefail; $(ENV) cd $(OUT) && quartus_sta -t $(PIN_TCL) $(SYS) 2>&1 | tee pin_assign.log | $(FILTRO)
 	$(S)/general/build.sh $(OUT)/$(SYS).qpf
 	@SOF=$$(ls $(OUT)/output_files/$(SYS).sof $(OUT)/$(SYS).sof 2>/dev/null | head -1); \
 	  [ "$$SOF" = "$(OUT)/$(SYS).sof" ] || cp "$$SOF" $(OUT)/$(SYS).sof

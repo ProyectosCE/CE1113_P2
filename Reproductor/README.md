@@ -8,7 +8,7 @@ digitales (al menos uno en hardware propio), control por botones con interrupcio
 periféricos de la FPGA (audio, botones, switches, ADC, 7 segmentos, filtro DSP propio) cuelgan del
 puente lightweight HPS-to-FPGA (`0xFF20_0000`).
 
-> Estado: incremento 0 ✅ (código cargado y ejecutado en el ARM por JTAG; corre en la OCRAM de
+> Estado: incremento 0 ok (código cargado y ejecutado en el ARM por JTAG; corre en la OCRAM de
 > 64 KB, ver [`docs/hardware/incremento-0-jtag-arm.md`](../docs/hardware/incremento-0-jtag-arm.md)).
 > **Siguiente: incremento 1** (HPS + puente LW + LEDs). Plan completo en
 > [`docs/hardware/guia-platform-designer.md`](../docs/hardware/guia-platform-designer.md).
