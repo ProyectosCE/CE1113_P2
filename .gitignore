@@ -195,3 +195,7 @@ core.*
 .env
 *.local
 questa_lic.dat
+
+# ---- Carpetas que qsys-generate crea junto a cada .qsys ---------------------
+/Reproductor/reproductor/
+/Reproductor/hello/
