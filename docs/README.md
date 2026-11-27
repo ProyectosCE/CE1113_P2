@@ -8,7 +8,11 @@ herramientas para cargar código en el ARM por JTAG; y pruebas mínimas que conf
 responde. La funcionalidad del reproductor (filtros, lectura de la SD, metadatos, interfaz) se
 construye encima.
 
-Fecha de este estado: 2026-11-26.
+Fecha de este estado: 2026-11-26. La base completa (hardware y software) se probó en la placa.
+
+- Para empezar a trabajar: [`GUIA_INICIO.md`](GUIA_INICIO.md)
+- Lo que falta y cómo repartirlo: [`TAREAS.md`](TAREAS.md)
+- Reglas de colaboración: [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
 
 ---
 
@@ -23,8 +27,8 @@ Fecha de este estado: 2026-11-26.
 | ADC (potenciómetro de volumen) | Funciona |
 | Controlador de 7 segmentos (hardware propio) | Funciona |
 | Filtro DSP (hardware propio) | Esqueleto integrado (registros completos, paso directo); falta el filtro |
-| VGA (metadatos) | Pendiente |
-| Esqueleto de software del reproductor (`sw/`) | Pendiente |
+| Pantalla externa para metadatos (VGA/LCD) | Pendiente, fuera de la base |
+| Esqueleto de software del reproductor (`Reproductor/sw/`) | Hecho: compila y corre; módulos del enunciado con `TODO` |
 | Funcionalidad del enunciado | Pendiente (ver sección 6) |
 
 Uso actual del FPGA (fitter, 2026-11-26): **1 889 ALMs (6 %)**, 2 817 registros, 5 120 bits de
@@ -54,7 +58,7 @@ flowchart LR
         JU["jtag_uart_0"]
         HEX["hex_ctrl_0 (propio)"]
         DSP["dsp_filter_0 (propio)"]
-        VGA["VGA (texto)"]
+        VGA["Pantalla (pendiente)"]
     end
     MSD[("microSD")] --- SD
     CPU --> LW
@@ -103,7 +107,7 @@ Todos los periféricos de la FPGA están en el puente lightweight. La dirección
 | `audio_pll_0` | — | — | Funciona | `tests/inc2-audio/` |
 | `adc` | `0x4000` | — | Funciona | `tests/io-adc/` |
 | `dsp_filter_0` (propio) | `0x5000` | — | Esqueleto (paso directo) | `tests/hw/`, `tests/hex-dsp/` |
-| VGA (Character Buffer) | por definir | — | **Pendiente** | — |
+| Pantalla externa (VGA/LCD) | por definir | — | Pendiente, fuera de la base | — |
 
 ### 3.1 `hps_0` — Hard Processor System
 
@@ -203,11 +207,11 @@ cambiar el mapa de registros.
 Uso por muestra: escribir DATA_IN → esperar STATUS.LISTO → leer DATA_OUT. Verificado en
 simulación (`tests/hw/`, 5 casos) y en la placa (`tests/hex-dsp/`).
 
-### 3.10 VGA — metadatos en pantalla (pendiente)
+### 3.10 Pantalla externa para metadatos (pendiente, fuera de la base)
 
-IP del University Program: *Video Clocks for DE-series Boards* (25 MHz), *Character Buffer* (texto
-de 80×60 en memoria interna) y *VGA Controller*. Mostrará título, artista, álbum, duración, número
-de canción, estado y filtro activo.
+Se decidió dejarla para después de la base. Opción prevista con VGA: IP del University Program
+*Video Clocks for DE-series Boards* (25 MHz), *Character Buffer* (texto de 80×60 en memoria interna)
+y *VGA Controller*. Mostrará título, artista, álbum, duración, número de canción, estado y filtro.
 
 ---
 
@@ -233,51 +237,42 @@ scripts/general/terminal.sh                       # terminal 3: consola JTAG UAR
 
 ---
 
-## 5. Software del reproductor: módulos a construir
+## 5. Software del reproductor
 
-Estructura propuesta para `Reproductor/sw/` (reemplaza el código viejo del Nios V):
+El esqueleto está en `Reproductor/sw/` y se describe en [`Reproductor/sw/README.md`](../Reproductor/sw/README.md):
+estructura, estado de cada driver y módulo, y cómo compilar y cargar (`make sw`, `make load`).
 
-```
-sw/
-├── arranque/      start.S (vectores, pilas por modo, watchdog), ocram.ld
-├── drivers/       un archivo por periférico, solo acceso a registros
-│   ├── hps.c          puentes HPS→FPGA, watchdog
-│   ├── gic.c          configuración del GIC y despacho de interrupciones
-│   ├── sdmmc.c        controlador SD/MMC del HPS (lectura de bloques)
-│   ├── audio.c        Audio Core: FIFOs, interrupción de escritura
-│   ├── av_config.c    acceso al codec por I2C (si hace falta ajustar algo en tiempo de ejecución)
-│   ├── adc.c          lectura del canal 0
-│   ├── keys.c         botones: máscara y captura de flancos
-│   ├── switches.c, leds.c, jtag_uart.c
-│   ├── hex.c          hex_ctrl
-│   ├── dsp.c          dsp_filter
-│   └── vga.c          Character Buffer
-├── reproductor/
-│   ├── fat.c          sistema de archivos FAT32 sobre sdmmc.c (lista de .wav)
-│   ├── wav.c          parser WAV: formato, frecuencia, tamaño, chunk LIST/INFO (metadatos)
-│   ├── remuestreo.c   8/16 kHz → 44.1 kHz por interpolación lineal
-│   ├── filtros.c      filtros en software + selección (incluye el filtro en hardware vía dsp.c)
-│   ├── volumen.c      escala de las muestras según el ADC
-│   ├── player.c       máquina de estados: detenido / reproduciendo / pausado, siguiente/anterior,
-│   │                  avance automático, tiempo transcurrido
-│   └── ui.c           VGA, 7 segmentos, LEDs; atención de botones y switches
-└── main.c
-```
+Resumen de los módulos y el requisito que cubre cada uno:
 
-| Módulo | Qué hace | Requisito que cubre |
-|---|---|---|
-| `arranque/` | Tabla de vectores, pilas de los modos SVC e IRQ, `.bss`, salto a `main` | Base de todo; gestión de memoria |
-| `gic.c` | Habilita las IRQ 72 (audio) y 73 (botones), atiende y despacha | Botones por interrupción |
-| `sdmmc.c` + `fat.c` | Lee bloques de la microSD con el controlador del HPS e interpreta FAT32 para listar y abrir los `.wav` | SD mediante el HPS; ≥10 canciones |
-| `wav.c` | Valida el formato (PCM, 16 bits, 8/16/44.1 kHz) y extrae título, artista y álbum del chunk `LIST/INFO`; la duración sale del tamaño de datos | Formatos; metadatos |
-| `remuestreo.c` | Convierte 8 y 16 kHz a 44.1 kHz | Formatos (el codec trabaja fijo a 44.1 kHz) |
-| `filtros.c` + `dsp.c` | Al menos 3 filtros seleccionables por switches; uno es el `dsp_filter` en hardware | Filtros digitales; latencia < 100 ms |
-| `volumen.c` | Multiplica las muestras por un factor que sale del ADC | Control de volumen |
-| `audio.c` | Llena el FIFO del Audio Core por interrupción | Reproducción sin cortes |
-| `player.c` | Estados, transiciones, avance automático, cambio de canción | Controles; reproducción continua; cambio de canción < 2 s |
-| `ui.c` | Muestra tiempo (7 segmentos), metadatos, número de canción, estado y filtro (VGA, LEDs) | Visualización |
+| Módulo | Qué hace | Requisito que cubre | Estado |
+|---|---|---|---|
+| `arranque/` | Vectores, pilas IRQ/SVC, `.bss`, mapa de memoria en OCRAM | Gestión de memoria | Listo |
+| `gic`, `keys` | Interrupciones; botones como eventos | Botones por interrupción | Listo |
+| `sdmmc` + `fat` | Lectura de la microSD (controlador del HPS) y FAT32 | SD mediante el HPS; ≥10 canciones | Pendiente |
+| `wav` | Formato (PCM 16 bits, 8/16/44.1 kHz) y metadatos `LIST/INFO` | Formatos; metadatos | Pendiente |
+| `remuestreo` | 8/16 kHz → 44.1 kHz | Formatos (codec fijo a 44.1 kHz) | Pendiente |
+| `filtros` + `dsp` | 4 posiciones con SW[1:0]: bypass, hardware, 2 de software | Filtros; latencia < 100 ms | Selección y hardware conectados; faltan los filtros |
+| `volumen` + `adc` | Ganancia desde el potenciómetro | Control de volumen | Básico |
+| `audio` | FIFO del codec | Reproducción sin cortes | Por sondeo; pendiente por interrupción |
+| `player` | Estados, botones, canción, tiempo | Controles; reproducción continua; cambio < 2 s | Básico |
+| `ui` + `hex` | MM:SS y canción en 7 segmentos, LEDs, consola | Visualización | Listo salvo pantalla externa |
 
----
+### 5.1 Las canciones y la microSD (sin Linux)
+
+No se usa Linux en ningún momento: el ARM corre en bare metal y lee la microSD con código propio.
+
+- **Preparar la tarjeta** (en la PC, una vez): formatearla en **FAT32** y copiar los `.wav` (16 bits,
+  8/16/44.1 kHz) a la raíz. Los metadatos van dentro del WAV, en el chunk `LIST/INFO`; por ejemplo:
+  `ffmpeg -i original.mp3 -ar 44100 -ac 2 -c:a pcm_s16le -metadata title="..." -metadata artist="..." -metadata album="..." cancion01.wav`.
+- **En la placa:** `sdmmc.c` maneja el controlador SD/MMC del HPS (comandos de la tarjeta y lectura de
+  bloques de 512 bytes), `fat.c` interpreta FAT32 para encontrar y leer los `.wav`, y `wav.c`
+  extrae formato y metadatos. Es el requisito "control de almacenamiento (SD) mediante el HPS".
+- **Fase 1 (ahora):** el programa se carga por JTAG; la SD solo guarda canciones.
+- **Fase 2 (arranque desde la SD):** la misma tarjeta lleva además una partición pequeña con el
+  preloader y el programa, y la partición FAT32 con las canciones. Sigue sin haber Linux.
+
+El enunciado pide para el HPS un "sistema operativo mínimo sin visualización ni interacción
+directa": el programa bare metal cumple eso.
 
 ## 6. Qué falta
 
@@ -286,10 +281,8 @@ sw/
 - [x] `hex_ctrl`: HDL, componente en Platform Designer, pines HEX0–HEX5.
 - [x] `dsp_filter`: esqueleto HDL (registros y paso directo), componente en Platform Designer y
       *testbench* inicial.
-- [ ] VGA: Video Clocks + Character Buffer + VGA Controller, pines VGA.
 - [ ] `av_config`: cambiar *DE Board* a DE1-SoC.
-- [ ] Esqueleto `sw/` con la estructura de la sección 5 (funciones declaradas y vacías) y targets
-      `make sw` y `make load` en `Reproductor/Makefile`.
+- [x] Esqueleto `sw/` (drivers, módulos con `TODO`) y targets `make sw`, `make load`, `make debug`.
 - [ ] Prueba de humo de la base completa.
 
 ### 6.2 Funcionalidad del enunciado (sobre la base)
@@ -303,7 +296,7 @@ sw/
 | Estado de reproducción visible | `ui.c` | Pendiente |
 | Reproducción continua (siguiente canción al terminar) | `player.c` | Pendiente |
 | Tiempo MM:SS en 7 segmentos (hardware) | `hex_ctrl`, `hex.c` | Hardware listo; falta llevar el tiempo de reproducción |
-| Metadatos, número de canción y filtro en pantalla | VGA, `ui.c` | Pendiente |
+| Metadatos, número de canción y filtro en pantalla | Pantalla externa, `ui.c` | Pendiente (después de la base) |
 | ≥3 filtros por switches, uno en HDL propio | `dsp_filter`, `filtros.c` | Interfaz del filtro en hardware lista; faltan los filtros |
 | Cambio de filtro < 100 ms; bypass sin distorsión | `filtros.c` | Pendiente |
 | Volumen con potenciómetro (ADC) | `adc.c`, `volumen.c` | Hardware listo; lógica pendiente |

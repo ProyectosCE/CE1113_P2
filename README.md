@@ -1,4 +1,18 @@
-# quartus-tools
+# CE1113 Proyecto II — Reproductor de audio en la DE1-SoC
+
+> **Proyecto:** reproductor de audio WAV con co-diseño hardware/software sobre la DE1-SoC (HPS en
+> bare metal + periféricos en la FPGA). Código en [`Reproductor/`](Reproductor/README.md).
+>
+> | Para… | Ver |
+> |---|---|
+> | Empezar (instalar, compilar, correr) | [`docs/GUIA_INICIO.md`](docs/GUIA_INICIO.md) |
+> | Estado de la base y arquitectura | [`docs/README.md`](docs/README.md) |
+> | Lo que falta | [`docs/TAREAS.md`](docs/TAREAS.md) |
+> | Cómo colaborar | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+>
+> El resto de este archivo documenta las herramientas de línea de comandos (`scripts/`).
+
+## quartus-tools
 
 Scripts para trabajar con Quartus Prime Lite 25.1std y la DE1-SoC desde la terminal.
 
