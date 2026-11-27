@@ -95,7 +95,7 @@ docs/                      estado, tareas, convenciones
 
 1. Tomar un paquete de [`docs/TAREAS.md`](docs/TAREAS.md) y crear (o asignarse) su **issue**.
 2. Rama desde `develop`: `feature/lectura-sd`, `feature/filtro-fir-hw`, `fix/...`, `docs/...`, `test/...`
-3. Commits pequeños y descriptivos en formato **Conventional Commits** (`feat(sd): ...`, `fix(dsp): ...`; ver la convención).
+3. Commits pequeños y descriptivos con el formato `[TAG] Descripción` (ver la convención).
 4. Antes del PR: `git merge develop` en la rama, compilar (`make hw` si tocó hardware, `make sw`),
    simular si tocó `ip/`, probar en la placa.
 5. PR hacia `develop` con la plantilla completa (*Impacto en el sistema* y *Validación*), enlazando
@@ -108,12 +108,11 @@ Cada push y cada PR hacia `develop`/`main` corre `.github/workflows/ci.yml`:
 
 | Job | Qué valida | Cómo probarlo antes de subir |
 |---|---|---|
-| Conventional Commits | Mensajes de commit y título del PR (`commitlint.config.mjs`) | Revisar los mensajes con [`commit-convention.md`](docs/development/commit-convention.md) |
+| Formato de commits | Mensajes de commit y título del PR con `[TAG] Descripción` (tags `[ADD]`, `[UPDATE]`, `[FIX]`, `[DEL]`, `[DOCS]`, `[TEST]`, `[REFACTOR]`, máximo dos) | Revisar los mensajes con [`commit-convention.md`](docs/development/commit-convention.md) |
 | Lint SystemVerilog | `verilator --lint-only -Wall` sobre `Reproductor/ip/*/*.sv` | `verilator --lint-only -Wall -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM Reproductor/ip/hex_ctrl/hex_ctrl.sv` (`sudo apt install verilator`) |
 | Compilar firmware | `make -C Reproductor sw` sin warnings; guarda el ELF y el `.map` como artefacto | `make sw` |
 
-Un PR no se integra con el CI en rojo. Se recomienda integrar con **squash**: el título del PR
-(validado por el CI) queda como el commit en `develop`.
+Un PR no se integra con el CI en rojo. El título del PR sigue el mismo formato `[TAG] Descripción`.
 
 ## 5. Antes de pedir revisión: lista corta
 

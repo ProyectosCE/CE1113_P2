@@ -39,7 +39,7 @@ Closes #
 - `pines.qsf` con todos los puertos; `Makefile` con `make hw` (incluye los pines de la DDR3 del HPS), `prog`, `report`, `qsys`, `sw`, `gdbserver`, `load`, `debug`, `consola`.
 - Software del ARM (`Reproductor/sw/`): arranque y mapa de memoria en OCRAM, `hw.h` con direcciones e IRQ, drivers sin HAL (`hps`, `gic`, `jtag_uart`, `leds`, `switches`, `keys`, `adc`, `audio`, `hex`, `dsp`) y módulos del reproductor (`player`, `filtros`, `volumen`, `ui`; `sdmmc`, `fat`, `wav`, `remuestreo` como esqueleto con `TODO`).
 - Pruebas (`tests/`): testbenches autoverificables de `hex_ctrl` y `dsp_filter` (`hw/sim.sh`) y pruebas en la placa (`inc0-hps`, `inc2-audio`, `io-adc`, `hex-dsp`).
-- CI en GitHub Actions (`.github/workflows/ci.yml`): valida commits y título del PR con Conventional Commits (`commitlint.config.mjs`), lint del SystemVerilog con Verilator y compilación del firmware sin warnings. `docs/development/commit-convention.md` pasa a Conventional Commits.
+- CI en GitHub Actions (`.github/workflows/ci.yml`): valida el formato `[TAG] Descripción` de los commits y del título del PR (`docs/development/commit-convention.md`), lint del SystemVerilog con Verilator y compilación del firmware sin warnings.
 - `scripts/hps/gdb-server.sh` para depurar el Cortex-A9 con el gdb-server de Ashling incluido en Quartus.
 - Documentación: `README.md` principal del proyecto, `scripts/README.md`, `docs/README.md` (arquitectura y módulos), `docs/TAREAS.md` (lo que falta), `docs/GUIA_INICIO.md` y `CONTRIBUTING.md`.
 

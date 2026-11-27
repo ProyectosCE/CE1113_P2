@@ -131,9 +131,9 @@ Con la carga por JTAG, un reset borra el programa, así que este requisito neces
 
 ### H. Limpieza del sistema
 
-- [X] `av_config`: cambiar *DE Board* de DE10-Standard a DE1-SoC.(No hace falta en realidad)
+- [ ] `av_config`: cambiar *DE Board* de DE10-Standard a DE1-SoC.
 - [ ] `jtag_uart_0`: justificarlo en la documentación (depuración) o quitarlo antes de la entrega.
-- [x] Borrar `Reproductor/ip/presets/NewPreset_1.qprs` (DDR3 genérica, no corresponde a la placa).
+- [ ] Borrar `Reproductor/ip/presets/NewPreset_1.qprs` (DDR3 genérica, no corresponde a la placa).
 - [ ] Renombrar `tests/inc0-hps/` e `tests/inc2-audio/` a nombres descriptivos y actualizar referencias.
 
 ### I. Reportes de recursos y potencia
@@ -194,4 +194,4 @@ Una sola persona a la vez debe modificar `reproductor.qsys` (ver la guía de col
 | Operativo en < 10 s tras el reset | G | Pendiente |
 | Sin componentes injustificados | H | Pendiente (`jtag_uart_0`) |
 | Reporte de recursos y potencia | I | Pendiente |
-| Documentación, README, Git (Conventional Commits, ramas, issues) | J | En curso |
+| Documentación, README, Git (convención de commits, ramas, issues) | J | En curso |
