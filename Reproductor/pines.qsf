@@ -1,0 +1,117 @@
+# DE1-SoC - pines del sistema "reproductor" (HPS, LEDs, audio, botones, switches, ADC, 7 segmentos)
+# Los pines del HPS (memory_*, hps_io_*) son dedicados: no se asignan aqui.
+# Las asignaciones de la DDR3 las agrega hps_sdram_p0_pin_assignments.tcl (lo corre "make hw").
+
+# ---- Reloj de 50 MHz ----
+set_location_assignment PIN_AF14 -to clk_clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_clk
+
+# ---- LEDR[9:0]: filtro activo / estado de reproduccion ----
+set_location_assignment PIN_V16 -to leds_export[0]
+set_location_assignment PIN_W16 -to leds_export[1]
+set_location_assignment PIN_V17 -to leds_export[2]
+set_location_assignment PIN_V18 -to leds_export[3]
+set_location_assignment PIN_W17 -to leds_export[4]
+set_location_assignment PIN_W19 -to leds_export[5]
+set_location_assignment PIN_Y19 -to leds_export[6]
+set_location_assignment PIN_W20 -to leds_export[7]
+set_location_assignment PIN_W21 -to leds_export[8]
+set_location_assignment PIN_Y21 -to leds_export[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to leds_export[*]
+
+# ---- Codec de audio WM8731 ----
+# Confirmar contra la tabla de pines de audio del manual de Terasic de la DE1-SoC.
+set_location_assignment PIN_G7  -to audio_pll_clk_clk
+set_location_assignment PIN_H7  -to audio_BCLK
+set_location_assignment PIN_J7  -to audio_DACDAT
+set_location_assignment PIN_H8  -to audio_DACLRCK
+set_location_assignment PIN_J12 -to av_config_SCLK
+set_location_assignment PIN_K12 -to av_config_SDAT
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_pll_clk_clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_BCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_DACDAT
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_DACLRCK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to av_config_SCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to av_config_SDAT
+
+# ---- Botones KEY[3:0] (activos en bajo, con antirrebote en la placa) ----
+set_location_assignment PIN_AA14 -to keys_export[0]
+set_location_assignment PIN_AA15 -to keys_export[1]
+set_location_assignment PIN_W15  -to keys_export[2]
+set_location_assignment PIN_Y16  -to keys_export[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keys_export[*]
+
+# ---- Interruptores SW[9:0] ----
+set_location_assignment PIN_AB12 -to switches_export[0]
+set_location_assignment PIN_AC12 -to switches_export[1]
+set_location_assignment PIN_AF9  -to switches_export[2]
+set_location_assignment PIN_AF10 -to switches_export[3]
+set_location_assignment PIN_AD11 -to switches_export[4]
+set_location_assignment PIN_AD12 -to switches_export[5]
+set_location_assignment PIN_AE11 -to switches_export[6]
+set_location_assignment PIN_AC9  -to switches_export[7]
+set_location_assignment PIN_AD10 -to switches_export[8]
+set_location_assignment PIN_AE12 -to switches_export[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to switches_export[*]
+
+# ---- ADC LTC2308 (potenciometro de volumen en CH0) ----
+# Puertos que genera el ADC Controller for DE-series Boards (variante DE1-SoC).
+# En el LTC2308, adc_cs_n hace de CONVST. Confirmar contra el manual de Terasic (rev. F).
+set_location_assignment PIN_AJ4 -to adc_cs_n
+set_location_assignment PIN_AK2 -to adc_sclk
+set_location_assignment PIN_AK4 -to adc_din
+set_location_assignment PIN_AK3 -to adc_dout
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_cs_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_sclk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_din
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to adc_dout
+
+# ---- Displays de 7 segmentos HEX0..HEX5 (hex_ctrl; activos en bajo, bits {g,f,e,d,c,b,a}) ----
+set_location_assignment PIN_AE26 -to hex_hex0[0]
+set_location_assignment PIN_AE27 -to hex_hex0[1]
+set_location_assignment PIN_AE28 -to hex_hex0[2]
+set_location_assignment PIN_AG27 -to hex_hex0[3]
+set_location_assignment PIN_AF28 -to hex_hex0[4]
+set_location_assignment PIN_AG28 -to hex_hex0[5]
+set_location_assignment PIN_AH28 -to hex_hex0[6]
+set_location_assignment PIN_AJ29 -to hex_hex1[0]
+set_location_assignment PIN_AH29 -to hex_hex1[1]
+set_location_assignment PIN_AH30 -to hex_hex1[2]
+set_location_assignment PIN_AG30 -to hex_hex1[3]
+set_location_assignment PIN_AF29 -to hex_hex1[4]
+set_location_assignment PIN_AF30 -to hex_hex1[5]
+set_location_assignment PIN_AD27 -to hex_hex1[6]
+set_location_assignment PIN_AB23 -to hex_hex2[0]
+set_location_assignment PIN_AE29 -to hex_hex2[1]
+set_location_assignment PIN_AD29 -to hex_hex2[2]
+set_location_assignment PIN_AC28 -to hex_hex2[3]
+set_location_assignment PIN_AD30 -to hex_hex2[4]
+set_location_assignment PIN_AC29 -to hex_hex2[5]
+set_location_assignment PIN_AC30 -to hex_hex2[6]
+set_location_assignment PIN_AD26 -to hex_hex3[0]
+set_location_assignment PIN_AC27 -to hex_hex3[1]
+set_location_assignment PIN_AD25 -to hex_hex3[2]
+set_location_assignment PIN_AC25 -to hex_hex3[3]
+set_location_assignment PIN_AB28 -to hex_hex3[4]
+set_location_assignment PIN_AB25 -to hex_hex3[5]
+set_location_assignment PIN_AB22 -to hex_hex3[6]
+set_location_assignment PIN_AA24 -to hex_hex4[0]
+set_location_assignment PIN_Y23  -to hex_hex4[1]
+set_location_assignment PIN_Y24  -to hex_hex4[2]
+set_location_assignment PIN_W22  -to hex_hex4[3]
+set_location_assignment PIN_W24  -to hex_hex4[4]
+set_location_assignment PIN_V23  -to hex_hex4[5]
+set_location_assignment PIN_W25  -to hex_hex4[6]
+set_location_assignment PIN_V25  -to hex_hex5[0]
+set_location_assignment PIN_AA28 -to hex_hex5[1]
+set_location_assignment PIN_Y27  -to hex_hex5[2]
+set_location_assignment PIN_AB27 -to hex_hex5[3]
+set_location_assignment PIN_AB26 -to hex_hex5[4]
+set_location_assignment PIN_AA26 -to hex_hex5[5]
+set_location_assignment PIN_AA25 -to hex_hex5[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex_hex0[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex_hex1[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex_hex2[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex_hex3[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex_hex4[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex_hex5[*]

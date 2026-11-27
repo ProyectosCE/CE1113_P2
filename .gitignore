@@ -1,36 +1,218 @@
-# Python
-# Entorno virtual
-.venv/
-venv/
+# =============================================================================
+# .gitignore - Proyectos Quartus + Platform Designer + Nios V (DE1-SoC)
+#
+# Se versiona: fuentes HDL (.v .sv .vhd), .qsys, .qsf de pines, .sdc, .c/.h,
+#              Makefiles, scripts y documentacion.
+# NO se versiona: todo lo que Quartus / Platform Designer / niosv-bsp / CMake
+#                 pueden regenerar, binarios, logs y archivos del editor/SO.
+# =============================================================================
 
-# Caché de Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ipynb_checkpoints/
+# ---- Salida de compilacion de los scripts (build.sh -o output) --------------
+output/
+output-*/
+output_files/
 
-# Audio: ningún archivo de audio se sube al repositorio
+# ---- Quartus: bases de datos y archivos intermedios -------------------------
+db/
+incremental_db/
+qdb/
+tmp-clearbox/
+.qsys_edit/
+greybox_tmp/
+*.qws
+*.qpf.bak
+*.qsf.bak
+*.qdf
+*.ddb
+*.smsg
+*.cdf.bak
+c5_pin_model_dump.txt
+create_project.tcl
+
+# ---- Quartus: reportes y logs -----------------------------------------------
+*.rpt
+*.summary
+*.done
+*.pin
+*.fit.*
+*.map.*
+*.sta.*
+*.asm.*
+*.eda.*
+*.jdi
+*.sld
+*.sim
+*.log
+build.log
+
+# ---- Quartus: bitstreams y archivos de programacion (binarios) --------------
+*.sof
+*.pof
+*.rbf
+*.jic
+*.jam
+*.jbc
+*.svf
+*.ttf.rpt
+*.base
+
+# ---- Platform Designer (Qsys): carpetas y archivos generados ----------------
+# Nota: los .qsys SI se versionan (son la fuente del sistema).
+*.sopcinfo
+*.qip
+*.bsf
+*.cmp
+*.spd
+*.ipx
+*.html
+**/synthesis/
+**/simulation/
+**/sim/
+**/testbench/
+*_tb/
+*_inst.v
+*_inst.vhd
+*_bb.v
+
+# Carpeta que qsys-generate crea junto al .qsys (hello/, hello_nodebug/, etc.).
+# Agregue aqui el nombre de cada sistema nuevo si queda fuera de los patrones
+# anteriores:
+/ejemplo-niosv/hello/
+/ejemplo-niosv/hello_nodebug/
+
+# ---- Hex/MIF de inicializacion de RAM generados -----------------------------
+# ram.hex lo crea build.sh (-m zero) dentro de output/ y ya queda ignorado.
+# Si algun .hex/.mif es fuente real del proyecto (p. ej. coeficientes de un
+# filtro), fuerce su inclusion con:  git add -f ruta/archivo.hex
+**/build/**/*.hex
+*.mif.bak
+
+# ---- Software Nios V: BSP y build generados ---------------------------------
+sw/bsp/
+sw/build/
+sw-*/
+**/bsp/
+**/build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+*.elf
+*.map
+*.objdump
+*.o
+*.a
+*.d
+*.bin
+*.srec
+*.lst
+
+# ---- Software HPS (ARM Cortex-A9): toolchain, imagenes y binarios -----------
+*.axf
+*.img
+*.dtb
+*.rbf
+*.preloader
+preloader/
+u-boot*/
+uboot*/
+*.sd.img
+*.iso
+
+# ---- Simulacion (ModelSim / Questa) -----------------------------------------
+work/
+modelsim.ini
+transcript
+vsim.wlf
+*.wlf
+*.vcd
+*.fst
+*.vstf
+msim_transcript
+wlft*
+vish_stacktrace.vstf
+questa.mpf
+*.mpf
+*.cr.mti
+*.mti
+
+# ---- Audio / datos binarios pesados (no suben a GitHub) ---------------------
+# Las canciones de prueba para la SD no deben versionarse (peso y copyright).
 *.wav
-*.WAV
 *.mp3
-*.MP3
 *.flac
 *.ogg
 *.m4a
-*.aac
-*.aiff
-*.aif
+# Excepcion: archivos de prueba pequenos para testbench/documentacion
+!tests/data/*.wav
+!docs/**/*.wav
 
-# Carpeta de audios de trabajo: se conserva solo el .gitkeep
-dsp/audio/*
-!dsp/audio/.gitkeep
+# ---- Documentos y artefactos de trabajo --------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+# Descomente si NO quiere subir PDFs/videos de evidencia al repositorio:
+# *.mp4
+# *.mov
 
-# Editores y sistema operativo
+# ---- Python (scripts de apoyo, p. ej. generar coeficientes de filtros) ------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# ---- Editores / IDE ---------------------------------------------------------
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+.riscfree/
+.metadata/
+.settings/
+.project
+.cproject
+*.launch
+Debug/
+Release/
+
+# ---- Sistema operativo ------------------------------------------------------
 .DS_Store
 Thumbs.db
+desktop.ini
+.directory
+*.tmp
+*.bak
+*.orig
+*.rej
+core
+core.*
 
-# Salidas generadas por el modelo DSP (gráficas, audios filtrados, tablas)
+# ---- Secretos / entorno local -----------------------------------------------
+.env
+*.local
+questa_lic.dat
+
+# ---- Carpetas que qsys-generate crea junto a cada .qsys ---------------------
+/Reproductor/reproductor/
+/Reproductor/hello/
+/Reproductor/reproductor_nodebug/
+/Reproductor/hello_nodebug/
+
+# ---- Modelo DSP en Python (dsp/) ---------------------------------------------
+# Caché de pytest
+.pytest_cache/
+# Ningún archivo de audio se sube (variantes en mayúscula y otros formatos)
+*.WAV
+*.MP3
+*.aac
+*.aiff
+*.aif
+# Audios de trabajo: se conserva solo el .gitkeep
+dsp/audio/*
+!dsp/audio/.gitkeep
+# Salidas generadas por el modelo (gráficas, audios filtrados, tablas)
 dsp/output/
