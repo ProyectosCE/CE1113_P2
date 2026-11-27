@@ -32,11 +32,16 @@
 #define AMPLITUD            8000                 /* ~25 % de escala completa: volumen moderado */
 #define PASO                (4 * AMPLITUD / 100) /* triangular de 100 muestras = 441 Hz a 44.1 kHz */
 
-/* Escribe en la JTAG UART sin bloquear: si no hay terminal conectada, descarta. */
+/* Espera a que haya espacio en el FIFO de 64 caracteres; si no hay terminal leyendo, se rinde
+ * tras un tiempo y descarta el caracter (asi el programa no se cuelga sin terminal). */
 static void uart_putc(char c)
 {
-    if (REG(JTAG_UART_CTRL) >> 16)
-        REG(JTAG_UART_DATA) = (uint32_t)c;
+    for (uint32_t t = 0; t < 2000000u; ++t) {
+        if (REG(JTAG_UART_CTRL) >> 16) {
+            REG(JTAG_UART_DATA) = (uint32_t)c;
+            return;
+        }
+    }
 }
 
 static void uart_puts(const char *s)

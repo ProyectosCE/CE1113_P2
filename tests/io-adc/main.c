@@ -47,11 +47,17 @@
 static volatile uint32_t teclas_pendientes;
 static volatile uint32_t total_irq;
 
-/* ---- JTAG UART (sin bloquear) ---- */
+/* ---- JTAG UART ---- */
+/* Espera a que haya espacio en el FIFO de 64 caracteres; si no hay terminal leyendo, se rinde
+ * tras un tiempo y descarta el caracter (asi el programa no se cuelga sin terminal). */
 static void uart_putc(char c)
 {
-    if (REG(JTAG_UART_CTRL) >> 16)
-        REG(JTAG_UART_DATA) = (uint32_t)c;
+    for (uint32_t t = 0; t < 2000000u; ++t) {
+        if (REG(JTAG_UART_CTRL) >> 16) {
+            REG(JTAG_UART_DATA) = (uint32_t)c;
+            return;
+        }
+    }
 }
 
 static void uart_puts(const char *s)

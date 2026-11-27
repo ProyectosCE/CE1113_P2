@@ -190,7 +190,8 @@ gdb-multiarch -x cargar.gdb programa.elf  # terminal 2: ver tests/inc0-hps/carga
   apagarlo desde gdb antes del `load` (lo hace `cargar.gdb`).
 - No repita `target remote` en una sesion ya conectada: el gdb-server queda colgado. Si pasa,
   cierre gdb, `Q` en el gdb-server, vuelva a arrancarlo y reconecte.
-- Paso a paso y resultados: `docs/hardware/incremento-0-jtag-arm.md`.
+- Probado en la DE1-SoC: sin preloader, el depurador y el CPU acceden a los 64 KB de la OCRAM
+  (`0xFFFF0000`); ahi corre el programa. Prueba minima en `tests/inc0-hps/`.
 
 ### Descargar un ELF a mano
 

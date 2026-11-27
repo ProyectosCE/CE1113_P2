@@ -8,8 +8,7 @@ digitales (al menos uno en hardware propio), control por botones con interrupcio
 periféricos de la FPGA (audio, botones, switches, ADC, 7 segmentos, filtro DSP propio) cuelgan del
 puente lightweight HPS-to-FPGA (`0xFF20_0000`).
 
-> Estado: incrementos 0, 1 y 2 ok (ARM cargado por JTAG en la OCRAM; HPS + puente LW + LEDs; audio
-> con el codec a 44.1 kHz, ver [`tests/inc2-audio/`](../tests/inc2-audio/README.md)).
+> Estado de la base, módulos y pendientes: [`docs/README.md`](../docs/README.md).
 >
 > Placa: **DE1-SoC rev. F/G** (ADC LTC2308, no AD7928 como dice el enunciado).
 
@@ -25,7 +24,7 @@ puente lightweight HPS-to-FPGA (`0xFF20_0000`).
 ## Requisitos
 
 - Quartus Prime Lite **25.1std** en `~/altera_lite/25.1std` (otra ruta: `export ALTERA_ROOT=...`).
-- IP del **University Program** en el IP Catalog (para audio, ADC y VGA; a partir del incremento 2).
+- IP del **University Program** en el IP Catalog (audio, ADC y VGA). Vienen con Quartus 25.1std.
 - DE1-SoC conectada por el USB-Blaster II y reglas udev instaladas (ver *Reglas udev del
   USB-Blaster* en el [README raíz](../README.md)). `jtagconfig` debe mostrar `4BA00477 SOCVHPS` (1)
   y `02D120DD 5CSE(BA5|MA5)` (2).
@@ -57,14 +56,14 @@ Qué hace `make hw`:
 2. `quartus_map` (Analysis & Synthesis).
 3. `quartus_sta -t .../hps_sdram_p0_pin_assignments.tcl` agrega al proyecto las asignaciones de los
    pines de la DDR3 del HPS. Sin este paso el fitter falla con errores de I/O en `memory_*`.
-4. Compilación completa -> `output/reproductor.sof`.
+4. Compilación completa → `output/reproductor.sof`.
 
 Logs: `output/map.log`, `output/pin_assign.log`, `output/build.log`.
 
 Si el paso 3 falla desde la terminal, abra `output/reproductor.qpf` en Quartus, corra *Analysis &
-Synthesis*, luego **Tools > Tcl Scripts** -> `hps_sdram_p0_pin_assignments.tcl` -> Run, y compile.
+Synthesis*, luego **Tools > Tcl Scripts** → `hps_sdram_p0_pin_assignments.tcl` → Run, y compile.
 
-## Probar el incremento 1
+## Probar el puente HPS→FPGA (LEDs)
 
 Con la FPGA programada, el gdb-server corriendo (`../scripts/hps/gdb-server.sh`) y gdb conectado
 (`gdb-multiarch -ex "set architecture armv7" -ex "target remote :3334"`):
@@ -78,18 +77,24 @@ set *(unsigned int*)0xFF200000 = 0x3FF    # enciende LEDR[9:0]
 
 ## Mapa de memoria (puente LW, base `0xFF20_0000`)
 
-| Periférico | Dirección | IRQ (`f2h_irq0` -> GIC ID) | Incremento |
-|---|---|---|---|
-| `leds` (PIO, 10 bits) | `0xFF20_0000` | — | 1 |
-| `hex_ctrl` (propio) | `0xFF20_0020` | — | 4 |
-| `switches` (PIO) | `0xFF20_0040` | — | 3 |
-| `keys` (PIO + IRQ) | `0xFF20_0050` | 1 -> 73 | 3 |
-| `jtag_uart_0` | `0xFF20_1000` | — | 1 |
-| `av_config` | `0xFF20_3000` | — | 2 |
-| `audio` | `0xFF20_3040` | 0 -> 72 | 2 |
-| `adc` | `0xFF20_4000` | — | 3 |
-| `dsp_filter` (propio) | `0xFF20_5000` | — | 4 |
-| VGA (Character Buffer) | por definir | — | 5 |
+| Periférico | Dirección | IRQ (`f2h_irq0` → GIC ID) |
+|---|---|---|
+| `leds` (PIO, 10 bits) | `0xFF20_0000` | — |
+| `hex_ctrl` (propio) | `0xFF20_0020` | — |
+| `switches` (PIO) | `0xFF20_0040` | — |
+| `keys` (PIO + IRQ) | `0xFF20_0050` | 1 → 73 |
+| `jtag_uart_0` | `0xFF20_1000` | — |
+| `av_config` | `0xFF20_3000` | — |
+| `audio` | `0xFF20_3040` | 0 → 72 |
+| `adc` | `0xFF20_4000` | — |
+| `dsp_filter` (propio) | `0xFF20_5000` | — |
+
+## Audio
+
+El codec WM8731 trabaja fijo a **44.1 kHz**: el Audio Clock genera `AUD_XCK` = 11.2896 MHz y el
+codec divide su reloj maestro entre 256. En `av_config` el *Sampling Rate* dice 48 kHz porque el IP
+no ofrece 44.1 kHz; con ese reloj el resultado es 44.1 kHz. Verificado con
+[`tests/inc2-audio/`](../tests/inc2-audio/README.md).
 
 ## Limpiar
 

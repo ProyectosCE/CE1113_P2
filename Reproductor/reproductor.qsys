@@ -88,6 +88,48 @@
          type = "int";
       }
    }
+   element dsp_filter
+   {
+      datum _sortIndex
+      {
+         value = "11";
+         type = "int";
+      }
+   }
+   element dsp_filter.s0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "20480";
+         type = "String";
+      }
+   }
+   element hex_ctrl
+   {
+      datum _sortIndex
+      {
+         value = "10";
+         type = "int";
+      }
+   }
+   element hex_ctrl.s0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "32";
+         type = "String";
+      }
+   }
    element hps_0
    {
       datum _sortIndex
@@ -218,6 +260,7 @@
    type="conduit"
    dir="end" />
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
+ <interface name="hex" internal="hex_ctrl.hex" type="conduit" dir="end" />
  <interface name="hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
  <interface
    name="keys"
@@ -290,6 +333,10 @@
   <parameter name="inputClockFrequency" value="0" />
   <parameter name="resetSynchronousEdges" value="NONE" />
  </module>
+ <module name="dsp_filter" kind="dsp_filter" version="1.0" enabled="1">
+  <parameter name="NUM_COEF" value="16" />
+ </module>
+ <module name="hex_ctrl" kind="hex_ctrl" version="1.0" enabled="1" />
  <module name="hps_0" kind="altera_hps" version="25.1" enabled="1">
   <parameter name="ABSTRACT_REAL_COMPARE_TEST" value="false" />
   <parameter name="ABS_RAM_MEM_INIT_FILENAME" value="meminit" />
@@ -922,6 +969,24 @@
    kind="avalon"
    version="25.1"
    start="hps_0.h2f_lw_axi_master"
+   end="hex_ctrl.s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0020" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="dsp_filter.s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x5000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
    end="leds.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
@@ -952,6 +1017,8 @@
  <connection kind="clock" version="25.1" start="clk_0.clk" end="keys.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="switches.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="adc.clk" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="hex_ctrl.clock" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="dsp_filter.clock" />
  <connection
    kind="clock"
    version="25.1"
@@ -996,6 +1063,16 @@
    start="clk_0.clk_reset"
    end="switches.reset" />
  <connection kind="reset" version="25.1" start="clk_0.clk_reset" end="adc.reset" />
+ <connection
+   kind="reset"
+   version="25.1"
+   start="clk_0.clk_reset"
+   end="hex_ctrl.reset" />
+ <connection
+   kind="reset"
+   version="25.1"
+   start="clk_0.clk_reset"
+   end="dsp_filter.reset" />
  <connection
    kind="reset"
    version="25.1"

@@ -74,9 +74,26 @@ gdb-multiarch -x ../inc0-hps/cargar.gdb io-adc.elf
 |---|---|
 | Los LEDs siguen los switches pero los KEY no imprimen nada | La IRQ no llega: revisar que `keys.irq` esté en `f2h_irq0` con número 1 y que *Generate IRQ* esté activo. En gdb: `x/x 0xFF20005C` (edge capture) debe cambiar al pulsar |
 | Un KEY imprime muchas veces seguidas | El edge capture no se limpia: revisar *Enable bit-clearing for edge capture register* |
-| `ADC0` fijo en 0 o en 4095 | Variante del ADC equivocada (AD7928 en vez de LTC2308), pines del ADC o cableado del potenciómetro |
+| `ADC0` fijo en 0 o en 4095 | Pines del ADC sin asignar (los nombres de `pines.qsf` no coinciden con los puertos del top: revisar con `grep adc_ Reproductor/output/reproductor.pin`), *Board revision* en *Autodetect* en vez de rev. F+, o cableado del potenciómetro |
 | El programa se cuelga al pulsar un KEY | La IRQ llega pero el vector no: revisar que el `.elf` se haya compilado con `start.S` de esta carpeta |
 
 ## Resultados
 
-(llenar al probar)
+Prueba hecha el 2026-11-26 en la DE1-SoC rev. F/G del grupo, con un potenciómetro de 10 kΩ entre
+GND y 3.3 V.
+
+| Entrada | Resultado |
+|---|---|
+| SW[9:0] → LEDR[9:0] | Cada switch enciende su LED; cada cambio se imprime (`SW=0x001` … `SW=0x3FF`) |
+| KEY[3:0] por IRQ (GIC ID 73) | Una línea por pulsación (`KEY0` … `KEY3`) y el contador sube de uno en uno. Dos botones casi juntos generan dos interrupciones (el contador se imprime después de atender ambas) |
+| ADC canal 0 | De **0–3** en un extremo a **3308** en el otro, pasando por ~2050 a la mitad; ruido de ±3 cuentas en reposo |
+
+3308 cuentas corresponden a 3.3 V / 4.096 V × 4095 ≈ 3299: la lectura coincide con lo esperado.
+
+Notas:
+
+- En esa prueba la primera línea salió cortada (`SW=0x000  SW=0x001 ...`): la JTAG UART tiene un
+  FIFO de 64 caracteres y el programa escribía sin esperar. Ahora `uart_putc` espera a que haya
+  espacio (con un límite de tiempo, para no colgarse si no hay terminal).
+- Configuración que funcionó: `keys` en `f2h_irq0` número 1; ADC con *Board revision* para rev. F+
+  (LTC2308) y puertos `adc_cs_n`/`adc_sclk`/`adc_din`/`adc_dout` en AJ4/AK2/AK4/AK3.

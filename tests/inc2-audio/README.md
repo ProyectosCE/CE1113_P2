@@ -1,7 +1,7 @@
-# Prueba del incremento 2 — audio
+# Prueba de audio
 
 Toca un tono triangular de **441 Hz** por **Line Out** (jack verde) y verifica que el codec trabaje a
-**44.1 kHz**. Usa el arranque y el linker script del incremento 0 (`../inc0-hps/`).
+**44.1 kHz**. Usa el arranque y el linker script de `../inc0-hps/`.
 
 | Indicador | Significado |
 |---|---|
@@ -11,8 +11,7 @@ Toca un tono triangular de **441 Hz** por **Line Out** (jack verde) y verifica q
 
 ## Pasos
 
-Requisitos: FPGA programada con el sistema del incremento 2 (`make hw && make prog` en
-`Reproductor/`) y audífonos o parlantes en Line Out, **a volumen bajo** al principio.
+Requisitos: FPGA programada con el sistema de `Reproductor/` (`make hw && make prog`) y audífonos o parlantes en Line Out, **a volumen bajo** al principio.
 
 ```bash
 # Compilar
