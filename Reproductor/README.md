@@ -28,7 +28,7 @@ puente lightweight HPS-to-FPGA (`0xFF20_0000`).
 - Quartus Prime Lite **25.1std** en `~/altera_lite/25.1std` (otra ruta: `export ALTERA_ROOT=...`).
 - IP del **University Program** en el IP Catalog (audio, ADC y VGA). Vienen con Quartus 25.1std.
 - DE1-SoC conectada por el USB-Blaster II y reglas udev instaladas (ver *Reglas udev del
-  USB-Blaster* en el [README raíz](../README.md)). `jtagconfig` debe mostrar `4BA00477 SOCVHPS` (1)
+  USB-Blaster* en [`scripts/README.md`](../scripts/README.md)). `jtagconfig` debe mostrar `4BA00477 SOCVHPS` (1)
   y `02D120DD 5CSE(BA5|MA5)` (2).
 - Software del ARM: compilador de 32 bits y gdb con soporte ARM:
   `sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi gdb-multiarch`.

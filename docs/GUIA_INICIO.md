@@ -147,6 +147,6 @@ Si todo esto pasa, el entorno está listo.
 | La placa se reinicia sola a los pocos segundos | Cargar siempre con `make load` o `make debug` (apagan el watchdog del BootROM) |
 | No suena nada | Audífonos en Line Out (verde); KEY0 para reproducir; revisar el volumen (potenciómetro) |
 
-Más detalles por tema: [`README.md`](../README.md) (scripts y USB-Blaster),
+Más detalles por tema: [`scripts/README.md`](../scripts/README.md) (scripts y USB-Blaster),
 [`Reproductor/README.md`](../Reproductor/README.md) (compilación del hardware),
 [`Reproductor/sw/README.md`](../Reproductor/sw/README.md) (software).
