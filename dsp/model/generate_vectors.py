@@ -51,7 +51,7 @@ SEGMENTS = (
     ("extremos", 200, "+32767 y -32768 constantes y alternados (saturación)"),
     ("chirp", 400, "barrido de 20 Hz a 0.45*fs, amplitud 0.5"),
     ("ruido", 300, f"ruido uniforme de amplitud 0.5, semilla {NOISE_SEED}"),
-    ("silencio", 500, "ceros: la salida debe volver a 0"),
+    ("silencio", 1000, "ceros: la salida debe volver a 0"),
 )
 
 # Señal de entrada
