@@ -1,5 +1,6 @@
 # Integración continua del reproductor:
-#   - commits:  mensajes de commit y título del PR en formato Conventional Commits
+#   - commits:  mensajes de commit y título del PR en formato [TAG] Descripción
+#               (docs/development/commit-convention.md)
 #   - lint-sv:  lint del hardware propio (SystemVerilog) con Verilator
 #   - firmware: compilación del software del ARM (make sw) sin warnings
 name: CI
@@ -16,27 +17,63 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   commits:
-    name: Conventional Commits
+    name: Formato de commits ([TAG] Descripción)
     runs-on: ubuntu-24.04
+    env:
+      # docs/development/commit-convention.md: uno o dos tags y una descripción breve
+      PATRON: '^(\[(ADD|UPDATE|FIX|DEL|DOCS|TEST|REFACTOR)\]){1,2} [^ ].*'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Validar mensajes de commit
-        uses: wagoid/commitlint-github-action@v6
-        with:
-          configFile: commitlint.config.mjs
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE_PR: ${{ github.event.pull_request.base.sha }}
+          HEAD_PR: ${{ github.event.pull_request.head.sha }}
+          ANTES: ${{ github.event.before }}
+        run: |
+          if [ "$EVENTO" = "pull_request" ]; then
+            rango="$BASE_PR..$HEAD_PR"
+          elif [ -n "$ANTES" ] && [ "$ANTES" != "0000000000000000000000000000000000000000" ]; then
+            rango="$ANTES..$GITHUB_SHA"
+          elif git rev-parse -q --verify origin/develop >/dev/null; then
+            rango="origin/develop..$GITHUB_SHA"   # rama nueva: sus commits respecto a develop
+          else
+            rango="$GITHUB_SHA~1..$GITHUB_SHA"
+          fi
+          echo "Commits revisados: $rango"
+          fallas=0
+          while IFS=$'\t' read -r sha asunto; do
+            [ -n "$sha" ] || continue
+            if printf '%s\n' "$asunto" | grep -Eq "$PATRON"; then
+              echo "ok    ${sha:0:7} $asunto"
+            else
+              echo "::error::${sha:0:7} no sigue el formato [TAG] Descripción: $asunto"
+              fallas=$((fallas + 1))
+            fi
+          done < <(git log --no-merges --format='%H%x09%s' "$rango")
+          if [ "$fallas" -gt 0 ]; then
+            echo "Tags permitidos: [ADD] [UPDATE] [FIX] [DEL] [DOCS] [TEST] [REFACTOR] (máximo dos)."
+            echo "Ver docs/development/commit-convention.md"
+            exit 1
+          fi
 
       - name: Validar el título del PR
         if: github.event_name == 'pull_request'
-        uses: amannn/action-semantic-pull-request@v5
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITULO: ${{ github.event.pull_request.title }}
+        run: |
+          if printf '%s\n' "$TITULO" | grep -Eq "$PATRON"; then
+            echo "ok    $TITULO"
+          else
+            echo "::error::El título del PR no sigue el formato [TAG] Descripción: $TITULO"
+            exit 1
+          fi
 
   lint-sv:
     name: Lint SystemVerilog (Verilator)
