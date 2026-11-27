@@ -40,7 +40,8 @@ module dsp_filter #(
 
     localparam logic [15:0] ID      = 16'hD5F1;
     localparam logic [7:0]  VERSION = 8'h01;   // 0x01 = esqueleto (paso directo)
-    localparam logic [7:0]  NCOEF8  = NUM_COEF;
+    localparam logic [7:0]  NCOEF8  = NUM_COEF[7:0];
+    localparam int          IDX_W   = (NUM_COEF > 1) ? $clog2(NUM_COEF) : 1;
 
     typedef enum logic [2:0] {
         R_CTRL      = 3'd0,
@@ -62,8 +63,10 @@ module dsp_filter #(
     logic signed [15:0] coef [0:NUM_COEF-1];
 
     logic escribe_dato, coef_valido;
+    logic signed [15:0] coef_sel;
+    assign coef_sel = coef[coef_idx[IDX_W-1:0]];
     assign escribe_dato = avs_write && (avs_address == R_DATA_IN);
-    assign coef_valido  = (coef_idx < NUM_COEF);
+    assign coef_valido  = ({24'd0, coef_idx} < NUM_COEF);
 
     // ---------------- Escritura de registros ----------------
     always_ff @(posedge clk) begin
@@ -72,8 +75,7 @@ module dsp_filter #(
             canal    <= 1'b0;
             data_in  <= '0;
             coef_idx <= '0;
-            for (int i = 0; i < NUM_COEF; i++)
-                coef[i] <= '0;
+            // Los coeficientes no se reinician: el software los carga antes de habilitar el filtro
         end else if (avs_write) begin
             case (avs_address)
                 R_CTRL: begin
@@ -83,7 +85,7 @@ module dsp_filter #(
                 end
                 R_DATA_IN:   data_in  <= avs_writedata[15:0];
                 R_COEF_IDX:  coef_idx <= avs_writedata[7:0];
-                R_COEF_DATA: if (coef_valido) coef[coef_idx] <= avs_writedata[15:0];
+                R_COEF_DATA: if (coef_valido) coef[coef_idx[IDX_W-1:0]] <= avs_writedata[15:0];
                 default: ;
             endcase
         end
@@ -120,7 +122,7 @@ module dsp_filter #(
                 R_DATA_IN:   avs_readdata <= {{16{data_in[15]}}, data_in};
                 R_DATA_OUT:  avs_readdata <= {{16{data_out[15]}}, data_out};
                 R_COEF_IDX:  avs_readdata <= {24'd0, coef_idx};
-                R_COEF_DATA: avs_readdata <= coef_valido ? {{16{coef[coef_idx][15]}}, coef[coef_idx]} : '0;
+                R_COEF_DATA: avs_readdata <= coef_valido ? {{16{coef_sel[15]}}, coef_sel} : '0;
                 R_INFO:      avs_readdata <= {ID, VERSION, NCOEF8};
                 default:     avs_readdata <= '0;
             endcase

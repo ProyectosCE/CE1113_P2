@@ -112,16 +112,25 @@ module hex_ctrl (
         endcase
     endfunction
 
-    // Cocientes y restos de valores <= 99: caben en 4 bits (se trunca el ancho intermedio)
+    // Cocientes y restos de valores <= 99: el resultado cabe en 4 bits (se toman los bits bajos)
+    logic [6:0] min_dec7, min_uni7, can_dec7, can_uni7;
+    logic [5:0] seg_dec6, seg_uni6;
     logic [3:0] min_dec, min_uni, seg_dec, seg_uni, can_dec, can_uni;
 
     always_comb begin
-        min_dec = minutos / 7'd10;
-        min_uni = minutos % 7'd10;
-        seg_dec = segundos / 6'd10;
-        seg_uni = segundos % 6'd10;
-        can_dec = cancion / 7'd10;
-        can_uni = cancion % 7'd10;
+        min_dec7 = minutos / 7'd10;
+        min_uni7 = minutos % 7'd10;
+        seg_dec6 = segundos / 6'd10;
+        seg_uni6 = segundos % 6'd10;
+        can_dec7 = cancion / 7'd10;
+        can_uni7 = cancion % 7'd10;
+
+        min_dec = min_dec7[3:0];
+        min_uni = min_uni7[3:0];
+        seg_dec = seg_dec6[3:0];
+        seg_uni = seg_uni6[3:0];
+        can_dec = can_dec7[3:0];
+        can_uni = can_uni7[3:0];
 
         hex0 = ctrl[0] ? seg7(seg_uni) : APAGADO;
         hex1 = ctrl[0] ? seg7(seg_dec) : APAGADO;

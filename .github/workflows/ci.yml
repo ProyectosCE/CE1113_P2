@@ -1,0 +1,92 @@
+# Integración continua del reproductor:
+#   - commits:  mensajes de commit y título del PR en formato Conventional Commits
+#   - lint-sv:  lint del hardware propio (SystemVerilog) con Verilator
+#   - firmware: compilación del software del ARM (make sw) sin warnings
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  commits:
+    name: Conventional Commits
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validar mensajes de commit
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: commitlint.config.mjs
+
+      - name: Validar el título del PR
+        if: github.event_name == 'pull_request'
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint-sv:
+    name: Lint SystemVerilog (Verilator)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Verilator
+        run: sudo apt-get update && sudo apt-get install -y verilator
+
+      - name: Lint de Reproductor/ip
+        run: |
+          verilator --version
+          fallas=0
+          for sv in Reproductor/ip/*/*.sv; do
+            top=$(basename "$sv" .sv)
+            echo "::group::$top"
+            if verilator --lint-only -Wall -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM \
+                 --top-module "$top" "$sv"; then
+              echo "OK: $top"
+            else
+              echo "::error file=$sv::Lint con errores o warnings en $top"
+              fallas=$((fallas + 1))
+            fi
+            echo "::endgroup::"
+          done
+          exit $fallas
+
+  firmware:
+    name: Compilar firmware (ARM)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar toolchain ARM
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi make
+
+      - name: make sw
+        run: |
+          set -o pipefail
+          make -C Reproductor sw 2>&1 | tee build-sw.log
+          if grep -q "warning:" build-sw.log; then
+            echo "::error::El firmware compila con warnings (ver el log)"
+            exit 1
+          fi
+
+      - name: Guardar ELF y mapa de memoria
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            Reproductor/sw/build/reproductor.elf
+            Reproductor/sw/build/reproductor.map

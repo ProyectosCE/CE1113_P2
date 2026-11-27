@@ -4,216 +4,102 @@
 
 Este documento define la convención utilizada para escribir los mensajes de commit en el repositorio.
 
-El objetivo es mantener un historial de Git claro, consistente y fácil de entender para todos los integrantes del equipo.
+El repositorio sigue **[Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/)**, que es lo que pide la especificación del proyecto. El CI (`.github/workflows/ci.yml`) valida cada commit y el título de cada Pull Request con las reglas de `commitlint.config.mjs`; si un mensaje no cumple el formato, el CI falla.
 
 ---
 
 ## 2. Formato general
 
-Todos los commits deben seguir la siguiente estructura:
-
 ```text
-[TAG] Breve descripción
+tipo(alcance): descripción breve
 ```
 
-También se permite utilizar un máximo de dos tags cuando el cambio pertenezca claramente a más de una categoría:
-
-```text
-[TAG][TAG] Breve descripción
-```
-
-Ejemplo:
-
-```text
-[UPDATE][TEST] Actualiza las pruebas unitarias del movimiento de motores
-```
-
-La descripción breve es obligatoria y debe escribirse en español.
-
----
-
-## 3. Tags disponibles
-
-### `[ADD]`
-
-Se utiliza cuando se agrega contenido nuevo al repositorio, como:
-
-* Nuevos archivos.
-* Nuevas funcionalidades.
-* Nuevos módulos o componentes.
-
-Ejemplo:
-
-```text
-[ADD] Agrega módulo para lectura del sensor ultrasónico
-```
-
----
-
-### `[UPDATE]`
-
-Se utiliza cuando se modifica o amplía una funcionalidad existente sin tratarse de una corrección de error.
-
-Ejemplo:
-
-```text
-[UPDATE] Mejora la lógica de detección de obstáculos
-```
-
----
-
-### `[FIX]`
-
-Se utiliza cuando se corrige un error o comportamiento incorrecto existente.
-
-Ejemplo:
-
-```text
-[FIX] Corrige cálculo de distancia del sensor frontal
-```
-
----
-
-### `[DEL]`
-
-Se utiliza cuando se eliminan archivos, configuraciones o componentes que ya no son necesarios.
-
-Ejemplo:
-
-```text
-[DEL] Elimina archivos temporales del entorno de pruebas
-```
-
----
-
-### `[DOCS]`
-
-Se utiliza para cambios relacionados con documentación.
-
-Incluye, por ejemplo:
-
-* Archivos Markdown.
-* README.
-* Comentarios relevantes dentro del código.
-
-Ejemplo:
-
-```text
-[DOCS] Documenta la estructura base del repositorio
-```
-
----
-
-### `[TEST]`
-
-Se utiliza cuando el cambio está relacionado con pruebas.
-
-Ejemplo:
-
-```text
-[TEST] Agrega pruebas unitarias para la lógica de navegación
-```
-
----
-
-### `[REFACTOR]`
-
-Se utiliza cuando se reorganiza o mejora internamente el código sin modificar su comportamiento esperado.
-
-Ejemplo:
-
-```text
-[REFACTOR] Simplifica la lógica de control de movimiento
-```
-
----
-
-## 4. Uso de múltiples tags
-
-Un commit puede utilizar hasta dos tags.
-
-Esto debe hacerse únicamente cuando ambos representen claramente el cambio realizado.
+- **tipo:** obligatorio, en minúsculas, de la lista de la sección 3.
+- **alcance:** opcional, entre paréntesis, indica la parte del proyecto afectada (sección 4).
+- **descripción:** obligatoria, en español, corta y clara (máximo 100 caracteres en total en la línea).
 
 Ejemplos:
 
 ```text
-[ADD][TEST] Agrega módulo de navegación y sus pruebas unitarias
+feat(sd): agrega lectura de bloques de la microSD
+fix(dsp): corrige la saturación del acumulador del filtro
+docs: actualiza la guía de inicio
+test(hw): agrega casos de impulso al testbench del filtro
 ```
 
-```text
-[FIX][DOCS] Corrige configuración de compilación y actualiza su documentación
-```
+---
 
-Si un commit requiere más de dos tags, se recomienda revisar si los cambios deberían dividirse en commits separados.
+## 3. Tipos
+
+| Tipo | Uso |
+|---|---|
+| `feat` | Funcionalidad nueva: módulo, driver, componente de hardware, periférico |
+| `fix` | Corrección de un error o comportamiento incorrecto |
+| `docs` | Solo documentación: README, Markdown, comentarios relevantes |
+| `test` | Pruebas: testbenches, pruebas en placa |
+| `refactor` | Reorganización del código sin cambiar su comportamiento |
+| `perf` | Mejora de rendimiento o de uso de recursos |
+| `build` | Sistema de compilación: Makefile, scripts de Quartus, pines, configuración del proyecto |
+| `ci` | Integración continua: workflows de GitHub Actions, `commitlint.config.mjs` |
+| `chore` | Mantenimiento que no encaja en los anteriores (por ejemplo eliminar archivos obsoletos) |
+| `style` | Formato del código sin cambio de lógica |
+| `revert` | Revierte un commit anterior |
+
+Equivalencias con la convención anterior del grupo: `[ADD]` → `feat`, `[UPDATE]` → `feat` o `refactor`, `[FIX]` → `fix`, `[DEL]` → `chore`, `[DOCS]` → `docs`, `[TEST]` → `test`, `[REFACTOR]` → `refactor`.
+
+---
+
+## 4. Alcances sugeridos
+
+El CI advierte (sin fallar) si se usa un alcance fuera de esta lista:
+
+| Área | Alcances |
+|---|---|
+| Hardware | `hw`, `qsys`, `pines`, `hex`, `dsp`, `audio`, `adc`, `keys` |
+| Software | `sw`, `drivers`, `sd`, `fat`, `wav`, `player`, `filtros`, `ui`, `volumen` |
+| Otros | `tests`, `scripts`, `ci`, `docs` |
 
 ---
 
 ## 5. Descripción breve
 
-La descripción del commit debe:
+La descripción debe:
 
 * Estar escrita en español.
 * Ser corta y clara.
 * Explicar qué se modificó.
 * Evitar mensajes genéricos.
 
-Ejemplos recomendados:
-
-```text
-[ADD] Agrega interfaz para control de motores
-[FIX] Corrige lectura incorrecta del sensor izquierdo
-[UPDATE] Mejora el manejo de estados del robot
-```
-
 Ejemplos que deben evitarse:
 
 ```text
-[UPDATE] Cambios
-[FIX] Arreglo
-[ADD] Cosas nuevas
+feat: cambios
+fix: arreglo
+chore: cosas
 ```
 
 ---
 
-## 6. Descripción extendida
+## 6. Cuerpo y cambios incompatibles
 
-El cuerpo o descripción extendida del commit es opcional.
+El cuerpo del commit es opcional; se separa de la primera línea con una línea en blanco y sirve para explicar la razón del cambio, decisiones técnicas o limitaciones.
 
-Puede utilizarse cuando sea necesario agregar contexto adicional sobre:
+Un cambio que obliga al resto del equipo a adaptarse (por ejemplo, mover la dirección de un periférico o cambiar los registros de un módulo) se marca con `!` y una nota en el pie:
 
-* La razón del cambio.
-* Decisiones técnicas importantes.
-* Limitaciones conocidas.
-* Información útil para otros integrantes del equipo.
+```text
+feat(dsp)!: agrega registro de ganancia al filtro
 
-Para cambios pequeños y suficientemente claros, el mensaje corto es suficiente.
+BREAKING CHANGE: COEF_DATA pasa del offset 0x14 al 0x18; actualizar dsp.c.
+```
 
 ---
 
 ## 7. Resumen
 
-El formato obligatorio es:
-
 ```text
-[TAG] Descripción breve
+tipo(alcance): descripción breve
 ```
 
-o:
+Tipos: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`, `style`, `revert`.
 
-```text
-[TAG][TAG] Descripción breve
-```
-
-Los tags permitidos son:
-
-```text
-[ADD]
-[UPDATE]
-[FIX]
-[DEL]
-[DOCS]
-[TEST]
-[REFACTOR]
-```
-
-Cada commit debe representar un cambio lógico y mantener un mensaje claro para facilitar la revisión y el seguimiento del historial del proyecto.
+Cada commit debe representar un cambio lógico. El título del Pull Request sigue el mismo formato, porque al integrar con *squash* se convierte en el commit de `develop`.
