@@ -17,6 +17,7 @@ from filter_config import FILTER_NAMES, SAMPLE_RATES
 from filter_wav import apply_filter
 from fixed_coefficients import FixedBiquad, build_fixed_filters, to_float_stage
 from fixed_model import (
+    DEFAULT_STATE_BITS,
     FixedBiquadCascade,
     FixedBiquadStage,
     datapath_widths,
@@ -48,6 +49,13 @@ def test_anchos_de_la_ruta_de_datos(state_bits, product, acc):
     widths = datapath_widths(state_bits)
     assert widths["producto"] == product
     assert widths["acumulador"] == acc
+
+def test_precision_por_defecto_es_24_bits():
+    # Decisión de diseño tomada con measure_fixed.py; el RTL debe usar lo mismo
+    assert DEFAULT_STATE_BITS == 24
+    assert FixedBiquadCascade([IDENTITY]).state_bits == 24
+    widths = datapath_widths(DEFAULT_STATE_BITS)
+    assert (widths["producto"], widths["acumulador"]) == (42, 48)
 
 def test_estado_menor_a_16_bits_no_permitido():
     with pytest.raises(ValueError):

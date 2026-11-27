@@ -60,7 +60,10 @@ from fixed_point import COEF_FORMAT, SAMPLE_FORMAT, check_fits, round_shift, sat
 SAMPLE_BITS = SAMPLE_FORMAT.total_bits     # 16
 COEF_BITS = COEF_FORMAT.total_bits         # 18
 COEF_FRAC = COEF_FORMAT.frac_bits          # 15
-DEFAULT_STATE_BITS = 16                    # precisión entre etapas (16 o 24)
+# Precisión entre etapas: 24 bits (Q1.23). Decidido con measure_fixed.py:
+# con 24 bits el error es el mismo que el ideal (solo el redondeo final a
+# 16 bits); con 16 bits el ecualizador pierde hasta 14 dB de SNR.
+DEFAULT_STATE_BITS = 24                   # precisión entre etapas (16 o 24)
 RESIDUE_BITS = COEF_FRAC                   # el residuo de redondear 15 bits cabe en 15
 
 def datapath_widths(state_bits: int) -> dict[str, int]:

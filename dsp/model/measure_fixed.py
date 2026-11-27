@@ -35,7 +35,7 @@ from scipy import signal
 from filter_config import FILTER_NAMES, SAMPLE_RATES
 from filter_wav import OUTPUT_AUDIO_DIR, apply_filter, read_wav, rms_db, to_sos, write_wav
 from fixed_coefficients import build_fixed_filters, to_float_stage
-from fixed_model import process_fixed
+from fixed_model import DEFAULT_STATE_BITS, process_fixed
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "measurements"
 INT16_SCALE = 32768
@@ -164,8 +164,8 @@ def main() -> None:
     parser.add_argument("--wav", type=Path, help="WAV para filtrar con el modelo y escuchar")
     parser.add_argument("--seconds", type=float, default=10.0,
                         help="segundos del WAV a procesar (por defecto 10)")
-    parser.add_argument("--state-bits", type=int, default=16, choices=(16, 24),
-                        help="precisión entre etapas para el WAV (por defecto 16)")
+    parser.add_argument("--state-bits", type=int, default=DEFAULT_STATE_BITS, choices=(16, 24),
+                        help=f"precisión entre etapas para el WAV (por defecto {DEFAULT_STATE_BITS})")
     args = parser.parse_args()
 
     rows = run_measurements()
