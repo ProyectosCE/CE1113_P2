@@ -58,6 +58,7 @@ WAV y metadatos, filtros, pantalla externa y arranque desde la SD ([`docs/TAREAS
 | Reglas de colaboración y flujo de Git | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Compilar el hardware, mapa de memoria | [`Reproductor/README.md`](Reproductor/README.md) |
 | Software del ARM | [`Reproductor/sw/README.md`](Reproductor/sw/README.md) |
+| Filtro DSP: diseño, modelo en Python y vectores de prueba | [`docs/dsp/README.md`](docs/dsp/README.md) |
 | Scripts de línea de comandos (Quartus, USB-Blaster) | [`scripts/README.md`](scripts/README.md) |
 
 ### Estructura del repositorio
@@ -67,8 +68,9 @@ CE1113_P2/
 ├── Reproductor/        el proyecto: sistema de Platform Designer, pines, hardware propio (ip/),
 │                       software del ARM (sw/) y Makefile
 ├── tests/              simulación del hardware propio (hw/) y pruebas en la placa
+├── dsp/                modelo del filtro DSP en Python: código, pruebas y vectores de prueba
 ├── scripts/            scripts de Quartus, Nios V y HPS
-├── docs/               estado, tareas, guía de inicio y convenciones de Git
+├── docs/               estado, tareas, guía de inicio, convenciones de Git y documentación del DSP (dsp/)
 ├── ejemplo-blink/      ejemplos de referencia (no son parte del reproductor)
 └── ejemplo-niosv/
 ```

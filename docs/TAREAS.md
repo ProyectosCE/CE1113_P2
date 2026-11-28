@@ -93,7 +93,7 @@ SW[1:0]: 0 = bypass, 1 = pasa-altos, 2 = pasa-banda, 3 = ecualizador de 3 bandas
 
 - [x] Elegir y diseñar los filtros: pasa-altos IIR (800 Hz), pasa-banda (300–3000 Hz) y
       ecualizador de 3 bandas. Diseño en Python, comparación FIR contra IIR y modelo bit-exacto en
-      punto fijo con vectores de prueba (rama `feature/procesamiento-dsp`: `dsp/` y `docs/dsp/`).
+      punto fijo con vectores de prueba ([`dsp/README.md`](dsp/README.md)).
 - [ ] **Filtro en hardware:** implementar el núcleo biquad en `dsp_filter.sv` (un solo archivo:
       MAC secuencial, estado separado por canal, redondeo y saturación como el modelo). Subir
       `VERSION` a `0x02`.
