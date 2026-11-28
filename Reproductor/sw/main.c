@@ -2,8 +2,9 @@
  * Reproductor de audio - DE1-SoC, HPS en bare metal.
  *
  * Esqueleto de la aplicacion: inicializa todos los perifericos y corre el lazo principal
- * (botones -> player, switches -> filtro, ADC -> volumen, audio, interfaz). Mientras no esten
- * fat.c y wav.c, la fuente de audio es un tono de prueba (tono.c).
+ * (botones -> player, switches -> filtro, ADC -> volumen, audio, interfaz). La fuente de audio
+ * son los .wav de la SD (player.c); si la SD no responde o no tiene .wav, suena un tono de
+ * prueba (tono.c).
  */
 #include <stdint.h>
 
@@ -21,11 +22,10 @@
 #include "fat.h"
 #include "filtros.h"
 #include "player.h"
-#include "tono.h"
 #include "ui.h"
 #include "volumen.h"
 
-#define CANCIONES_PRUEBA    10u     /* hasta que fat.c cuente los .wav de la SD */
+#define CANCIONES_PRUEBA    10u     /* si la SD no tiene .wav (tono de prueba) */
 
 static void informar(const char *nombre, int ok)
 {
@@ -51,6 +51,13 @@ int main(void)
     informar("FAT", fat_montar() == 0);
 
     int n = fat_contar_wav();
+    for (int i = 0; i < n; ++i) {                   /* canciones encontradas en la SD */
+        uart_puts("  ");
+        uart_putu((uint32_t)i + 1u);
+        uart_puts(". ");
+        uart_puts(fat_nombre_wav(i));
+        uart_puts("\r\n");
+    }
     player_iniciar(n > 0 ? (uint32_t)n : CANCIONES_PRUEBA);
     irq_habilitar();
 
@@ -60,16 +67,14 @@ int main(void)
         filtros_seleccionar((filtro_t)(switches_leer() & 0x3u));
         volumen_desde_adc(adc_leer(0));
 
-        /* Audio: llenar el FIFO del codec */
+        /* Audio: llenar la cola del codec (la interrupcion la pasa al FIFO) */
         for (uint32_t libre = audio_espacio(); libre > 0; --libre) {
-            int16_t m = 0;
-            if (player_estado() == PLAYER_REPRODUCIENDO) {
-                m = tono_siguiente();               /* TODO: muestras del WAV + remuestreo */
+            int16_t izq = 0, der = 0;
+            if (player_estado() == PLAYER_REPRODUCIENDO && player_muestra(&izq, &der))
                 player_muestra_enviada();
-            }
-            m = filtros_procesar(m, 0);             /* TODO: estereo (canal 1) */
-            m = volumen_aplicar(m);
-            audio_escribir(m, m);
+            izq = volumen_aplicar(filtros_procesar(izq, 0));
+            der = volumen_aplicar(filtros_procesar(der, 1));
+            audio_escribir(izq, der);
         }
 
         /* Salidas */

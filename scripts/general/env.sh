@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Entorno de Quartus / Nios V / Questa.   Uso:  source ~/quartus-tools/env.sh
-: "${ALTERA_ROOT:=$HOME/altera_lite/25.1std}"
+: "${ALTERA_ROOT:=/opt/altera_lite/25.1std}"
 if [ ! -d "$ALTERA_ROOT/quartus" ]; then
     echo "ERROR: no encuentro Quartus en '$ALTERA_ROOT/quartus' (exporte ALTERA_ROOT)." >&2
     return 1 2>/dev/null || exit 1

@@ -64,7 +64,7 @@ SW_BUILD := $(SW)/build
 ELF      := $(SW_BUILD)/reproductor.elf
 SW_SRCS  := $(wildcard $(SW)/arranque/*.S $(SW)/*.c $(SW)/drivers/*.c $(SW)/reproductor/*.c)
 SW_HDRS  := $(wildcard $(SW)/include/*.h $(SW)/drivers/*.h $(SW)/reproductor/*.h)
-CFLAGS   := -mcpu=cortex-a9 -marm -O2 -g -std=c11 -ffreestanding -nostdlib \
+CFLAGS   := -mcpu=cortex-a9 -marm -mno-unaligned-access -O2 -g -std=c11 -ffreestanding -nostdlib \
             -ffunction-sections -fdata-sections -Wall -Wextra \
             -I$(SW)/include -I$(SW)/drivers -I$(SW)/reproductor
 LDFLAGS  := -T $(SW)/arranque/ocram.ld -Wl,--gc-sections -Wl,-Map=$(SW_BUILD)/reproductor.map

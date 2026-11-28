@@ -39,6 +39,20 @@ reset:
     mcr     p15, 0, r0, c1, c0, 0
     isb
 
+    /* Cache de instrucciones y prediccion de saltos (SCTLR.I y SCTLR.Z). Sin MMU la cache de
+     * datos no se puede usar, pero la de instrucciones si: sin ella cada instruccion se trae de
+     * la OCRAM y el procesador va varias veces mas lento. */
+    mov     r0, #0
+    mcr     p15, 0, r0, c7, c5, 0       /* ICIALLU: invalidar la cache de instrucciones */
+    mcr     p15, 0, r0, c7, c5, 6       /* BPIALL: invalidar el predictor de saltos */
+    dsb
+    isb
+    mrc     p15, 0, r0, c1, c0, 0
+    orr     r0, r0, #(1 << 12)          /* I */
+    orr     r0, r0, #(1 << 11)          /* Z */
+    mcr     p15, 0, r0, c1, c0, 0
+    isb
+
     /* Pilas (tamaños en ocram.ld) */
     cps     #0x12                       /* modo IRQ */
     ldr     sp, =__pila_irq_tope
