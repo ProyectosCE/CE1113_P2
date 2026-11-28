@@ -52,8 +52,9 @@ Reproductor/
 │   └── reproductor/       lógica del reproductor
 └── Makefile
 tests/                     pruebas: simulación (hw/) y pruebas en placa
+dsp/                       modelo del filtro DSP en Python (ver docs/dsp/README.md)
 scripts/                   scripts de Quartus, Nios V y HPS
-docs/                      estado, tareas, convenciones
+docs/                      estado, tareas, convenciones y documentación del DSP (dsp/)
 ```
 
 ---
