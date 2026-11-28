@@ -26,6 +26,7 @@ ESPERA_MAX = 100    # ciclos máximos esperando LISTO
 
 RAIZ = Path(__file__).resolve().parents[3]
 VECTORES = RAIZ / "dsp" / "vectors"     # vectores del modelo (dsp/vectors/README.md)
+MODELO = RAIZ / "dsp" / "model"         # modelo bit-exacto (fixed_model.py)
 
 
 def con_signo(valor, bits=32):
