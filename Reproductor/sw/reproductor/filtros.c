@@ -37,10 +37,9 @@ const char *filtros_nombre(filtro_t f)
 
 int16_t filtros_procesar(int16_t muestra, int canal)
 {
-    (void)canal;   /* TODO: estado separado por canal (dsp: bit CANAL de CTRL) */
     switch (actual) {
     case FILTRO_HW:
-        return dsp_procesar(muestra);
+        return dsp_procesar(muestra, canal);
     case FILTRO_SW_1:   /* TODO */
     case FILTRO_SW_2:   /* TODO */
     case FILTRO_BYPASS:
