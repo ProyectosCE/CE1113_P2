@@ -13,6 +13,7 @@ Fecha de este estado: 2026-11-26. La base completa (hardware y software) se prob
 - Para empezar a trabajar: [`GUIA_INICIO.md`](GUIA_INICIO.md)
 - Lo que falta y cómo repartirlo: [`TAREAS.md`](TAREAS.md)
 - Reglas de colaboración: [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
+- Diseño y modelo del filtro DSP: [`dsp/README.md`](dsp/README.md)
 
 ---
 
@@ -194,8 +195,7 @@ completa; el procesamiento todavía deja pasar la muestra sin cambios. **Los tre
 reproductor se implementan en este módulo** (ninguno en software): pasa-altos, pasa-banda y
 ecualizador de 3 bandas, como una cascada de 3 biquads (filtros IIR de segundo orden) con una MAC
 secuencial. El filtro activo depende de los coeficientes que carga el software. El diseño de los
-filtros y el modelo de referencia en punto fijo están en la rama `feature/procesamiento-dsp`
-(`dsp/` y `docs/dsp/`). El núcleo se escribe en el mismo archivo `dsp_filter.sv`; el mapa de
+filtros y el modelo de referencia en punto fijo están en [`dsp/README.md`](dsp/README.md). El núcleo se escribe en el mismo archivo `dsp_filter.sv`; el mapa de
 registros se revisará en el diseño del módulo (por ejemplo, los coeficientes pasan a Q3.15 de
 18 bits).
 

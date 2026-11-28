@@ -20,6 +20,7 @@ git checkout develop
 | `Reproductor/` | El proyecto: sistema de Platform Designer, pines, `Makefile`, hardware propio (`ip/`) y software del ARM (`sw/`) |
 | `tests/` | Pruebas: simulación del hardware propio (`hw/`) y pruebas en la placa |
 | `scripts/` | Scripts de Quartus, del Nios V (ejemplos) y del HPS (gdb-server) |
+| `dsp/` | Modelo del filtro DSP en Python (ver [`docs/dsp/README.md`](dsp/README.md)) |
 | `docs/` | Estado de la base, tareas, convenciones de Git, esta guía |
 | `ejemplo-blink/`, `ejemplo-niosv/` | Ejemplos de referencia (no son parte del reproductor) |
 
