@@ -69,7 +69,7 @@ señales internas van en minúsculas y son las mismas que tendrá
 | Cambio de filtro | escribir `COEF_DATA` borra el estado de los dos canales | el modelo reinicia el estado al cargar coeficientes; el hardware lo garantiza aunque el software no use `LIMPIAR` |
 | Valor de reset de los coeficientes | cada etapa como identidad (`b0 = 1,0`) | si se habilita el filtro sin cargar coeficientes, el audio pasa sin cambios en vez de salir silencio o basura |
 | Saturación | bit pegajoso `STATUS.SATURO` | queda en 1 hasta que se borre, así no se pierde una saturación de una sola muestra; sirve para depurar y como evidencia |
-| Interfaz Avalon-MM | la del esqueleto, sin cambios | el `_hw.tcl` y `reproductor.qsys` no se tocan |
+| Interfaz Avalon-MM | la del esqueleto, sin cambios | mismas señales; solo se quita el parámetro `NUM_COEF` del módulo, del `_hw.tcl` y de `reproductor.qsys`, porque queda fijo en 15 |
 
 ---
 

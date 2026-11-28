@@ -5,7 +5,7 @@ dos módulos ya dentro del sistema, accedidos por el ARM a través del puente li
 
 | Qué se ve | Qué se espera |
 |---|---|
-| Consola JTAG UART | `dsp_filter INFO = 0xD5F10110  (ID correcto)`, `dsp_filter: paso directo OK` y `hex_ctrl STATUS = 0x4E58....  (ID correcto)` |
+| Consola JTAG UART | `dsp_filter INFO = 0xD5F1020F  (ID correcto)` (`0xD5F10110` con la versión `0x01`), `dsp_filter: paso directo OK` (en la versión `0x02` los coeficientes de reset son la identidad) y `hex_ctrl STATUS = 0x4E58....  (ID correcto)` |
 | HEX3–HEX0 | Cronómetro `00 00`, `00 01`, … avanzando 1 por segundo (la base de tiempo es el codec a 44.1 kHz) |
 | HEX5–HEX4 | El valor de SW[6:0] en decimal (00–99; arriba de 99 se queda en 99) |
 | LEDR | Copia de los switches |
@@ -40,7 +40,7 @@ gdb-multiarch -x ../inc0-hps/cargar.gdb hex-dsp.elf
 
 ## Resultados
 
-Prueba hecha el 2026-11-26 en la DE1-SoC rev. F/G del grupo.
+Prueba hecha el 2026-11-26 en la DE1-SoC rev. F/G del grupo, con la versión `0x01` de `dsp_filter`.
 
 | Qué se probó | Resultado |
 |---|---|

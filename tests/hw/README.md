@@ -49,20 +49,32 @@ scripts/hw/docker.sh <comando ...>     # cualquier comando, p. ej. verilator --v
 | 7 | Segundos = 61 | Satura en 59 y STATUS.FUERA_RANGO = 1; se limpia con un valor válido |
 | 8 | EN_TIEMPO = 0 | HEX3..HEX0 apagados, HEX5..HEX4 siguen mostrando la canción |
 
-## `dsp_filter` — `tb_dsp_filter.sv` (esqueleto)
+## `dsp_filter` — `tb_dsp_filter.sv` (versión `0x02`)
+
+Prueba con valores calculados a mano. Los bancos de coeficientes de prueba están al inicio
+del archivo.
 
 | # | Caso | Se verifica |
 |---|---|---|
-| 1 | Lectura de INFO | ID = `0xD5F1`, NUM_COEF = 16 |
-| 2 | Tras el reset | LISTO = 0, OCUPADO = 0 |
-| 3 | 16 coeficientes | Se escriben y se leen de vuelta (valores negativos incluidos) |
-| 4 | Muestras 0, 1, −1, 32767, −32768, 1234 con EN = 1 y una con EN = 0 | La salida es igual a la entrada (paso directo) |
-| 5 | Lectura de CTRL | EN y CANAL se leen de vuelta; LIMPIAR se lee como 0 |
-
-Cuando se implemente el filtro real, el caso 4 debe comparar contra la respuesta calculada aparte
-(por ejemplo con Python u Octave para los mismos coeficientes) y agregarse casos de impulso,
-escalón y saturación.
+| 1 | Lectura de INFO | `0xD5F1020F`: ID, versión `0x02` y 15 coeficientes |
+| 2 | Tras el reset | LISTO = 0, OCUPADO = 0, SATURO = 0 |
+| 3 | Coeficientes de reset | Índices 0, 5 y 10 = `0x8000` (identidad), el resto 0; el índice 15 se lee como 0 |
+| 4 | Escritura y lectura de los 15 coeficientes | Se leen extendidos en signo desde el bit 17 (extremos `0x1FFFF` y `0x20000` incluidos) aunque se escriba basura en los bits 31:18; con índice 20 la escritura se ignora |
+| 5 | Identidad con EN = 1 | 0, 1, −1, 32767, −32768 y 1234 salen iguales tras las 3 etapas |
+| 6 | Bypass (EN = 0) | La salida es igual a la entrada |
+| 7 | Promedio (`b0 = b1 = 0,5` en la etapa 0) | 1000 → 500 y luego 2000 → 1500 (ejemplo de la sección 9.5 de la especificación) |
+| 8 | Canales independientes | En el canal 1, 1000 → 500: no ve el historial del canal 0 |
+| 9 | LIMPIAR | En el canal 0, 1000 → 500 otra vez: el historial quedó en cero |
+| 10 | SATURO | Con `b0 ≈ 4`, 32767 satura la etapa 0: SATURO = 1 y la salida es 32767; escribir COEF_DATA lo borra |
+| 11 | DATA_IN con OCUPADO = 1 | La segunda de dos escrituras seguidas se descarta |
+| 12 | Lectura de CTRL | EN y CANAL se leen de vuelta; LIMPIAR se lee como 0 |
 
 ## Resultados
 
-(llenar al simular)
+Simulación del 2026-11-28 con Questa Altera Starter FPGA Edition 2025.2 (`tests/hw/sim.sh todos`)
+y lint con Verilator 5.040 (`scripts/hw/docker.sh lint`):
+
+| Módulo | Casos | Questa | Lint |
+|---|---|---|---|
+| `hex_ctrl` | 8 | OK, 0 errores y 0 avisos | OK |
+| `dsp_filter` (versión `0x02`) | 12 | OK, 0 errores y 0 avisos | OK |

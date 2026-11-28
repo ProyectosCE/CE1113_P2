@@ -27,7 +27,7 @@ Fecha de este estado: 2026-11-26. La base completa (hardware y software) se prob
 | Audio (codec WM8731 a 44.1 kHz) | Funciona |
 | ADC (potenciómetro de volumen) | Funciona |
 | Controlador de 7 segmentos (hardware propio) | Funciona |
-| Filtro DSP (hardware propio) | Esqueleto integrado (registros completos, paso directo); falta el filtro |
+| Filtro DSP (hardware propio) | RTL de la cascada de 3 biquads (versión `0x02`); prueba de humo en simulación |
 | Pantalla externa para metadatos (VGA/LCD) | Pendiente, fuera de la base |
 | Esqueleto de software del reproductor (`Reproductor/sw/`) | Hecho: compila y corre; módulos del enunciado con `TODO` |
 | Funcionalidad del enunciado | Pendiente (ver sección 6) |
@@ -107,7 +107,7 @@ Todos los periféricos de la FPGA están en el puente lightweight. La dirección
 | `audio` | `0x3040` | 0 → 72 | Funciona | `tests/inc2-audio/` |
 | `audio_pll_0` | — | — | Funciona | `tests/inc2-audio/` |
 | `adc` | `0x4000` | — | Funciona | `tests/io-adc/` |
-| `dsp_filter_0` (propio) | `0x5000` | — | Esqueleto (paso directo) | `tests/hw/`, `tests/hex-dsp/` |
+| `dsp_filter_0` (propio) | `0x5000` | — | Cascada de 3 biquads (versión `0x02`) | `tests/hw/`, `tests/hex-dsp/` |
 | Pantalla externa (VGA/LCD) | por definir | — | Pendiente, fuera de la base | — |
 
 ### 3.1 `hps_0` — Hard Processor System
@@ -188,30 +188,32 @@ número de canción en HEX5–HEX4. Cumple el requisito de manejo de los display
 
 Verificado en simulación (`tests/hw/`, 8 casos) y en la placa (`tests/hex-dsp/`).
 
-### 3.9 `dsp_filter` — filtro DSP (hardware propio, esqueleto)
+### 3.9 `dsp_filter` — filtro DSP (hardware propio)
 
-El filtro obligatorio en HDL propio, en SystemVerilog (`Reproductor/ip/dsp_filter/`). La interfaz de registros ya está
-completa; el procesamiento todavía deja pasar la muestra sin cambios. **Los tres filtros del
-reproductor se implementan en este módulo** (ninguno en software): pasa-altos, pasa-banda y
-ecualizador de 3 bandas, como una cascada de 3 biquads (filtros IIR de segundo orden) con una MAC
-secuencial. El filtro activo depende de los coeficientes que carga el software. El diseño de los
-filtros y el modelo de referencia en punto fijo están en [`dsp/README.md`](dsp/README.md). El núcleo se escribe en el mismo archivo `dsp_filter.sv`. La
-especificación del módulo (registros nuevos, ruta de datos, FSM y diagramas de tiempo) está en
-[`dsp/especificacion-modulo.md`](dsp/especificacion-modulo.md); la tabla de abajo es la del
-esqueleto y se actualiza en la Fase 4, junto con el RTL.
+El filtro obligatorio en HDL propio, en SystemVerilog (`Reproductor/ip/dsp_filter/dsp_filter.sv`).
+**Los tres filtros del reproductor se implementan en este módulo** (ninguno en software):
+pasa-altos, pasa-banda y ecualizador de 3 bandas, como una cascada de 3 biquads (filtros IIR de
+segundo orden) con una MAC secuencial de un solo multiplicador (20 ciclos por muestra, 2 en bypass).
+El filtro activo depende de los coeficientes que carga el software; el estado se guarda por
+separado para cada canal. El diseño de los filtros y el modelo de referencia en punto fijo, que el
+RTL reproduce bit a bit, están en [`dsp/README.md`](dsp/README.md). La especificación del módulo
+(ruta de datos, FSM y diagramas de tiempo) está en
+[`dsp/especificacion-modulo.md`](dsp/especificacion-modulo.md).
 
 | Offset | Registro | Acceso | Contenido |
 |---|---|---|---|
 | `0x00` | CTRL | RW | bit 0 EN (1 = filtrar, 0 = bypass), bit 1 LIMPIAR (borra el estado), bit 2 CANAL (0 = izq., 1 = der.) |
-| `0x04` | STATUS | R | bit 0 LISTO, bit 1 OCUPADO |
-| `0x08` | DATA_IN | RW | muestra de 16 bits con signo; escribirla inicia el procesamiento |
+| `0x04` | STATUS | R | bit 0 LISTO, bit 1 OCUPADO, bit 2 SATURO (alguna etapa saturó; se borra con LIMPIAR o al escribir COEF_DATA) |
+| `0x08` | DATA_IN | RW | muestra de 16 bits con signo; escribirla inicia el procesamiento (se descarta si OCUPADO = 1) |
 | `0x0C` | DATA_OUT | R | resultado de 16 bits con signo |
-| `0x10` | COEF_IDX | RW | índice del coeficiente |
-| `0x14` | COEF_DATA | RW | coeficiente Q1.15 en la posición COEF_IDX |
-| `0x18` | INFO | R | ID `0xD5F1`, versión (`0x01` = esqueleto), número de coeficientes (16) |
+| `0x10` | COEF_IDX | RW | índice del coeficiente (0–14: etapa·5 + b0, b1, b2, a1, a2) |
+| `0x14` | COEF_DATA | RW | coeficiente Q3.15 de 18 bits en la posición COEF_IDX (se lee extendido en signo); escribirlo borra el estado; con índice ≥ 15 se ignora |
+| `0x18` | INFO | R | `0xD5F1020F`: ID `0xD5F1`, versión `0x02`, 15 coeficientes |
 
-Uso por muestra: escribir DATA_IN → esperar STATUS.LISTO → leer DATA_OUT. Verificado en
-simulación (`tests/hw/`, 5 casos) y en la placa (`tests/hex-dsp/`).
+Al reset cada etapa es la identidad (`b0 = 1,0`), así que con EN = 1 y sin cargar coeficientes el
+audio pasa sin cambios. Uso por muestra: escribir CTRL (EN y CANAL) → escribir DATA_IN → esperar
+STATUS.LISTO → leer DATA_OUT. Verificado en simulación (`tests/hw/`, 12 casos); en la placa se
+probó la versión `0x01` (`tests/hex-dsp/`).
 
 ### 3.10 Pantalla externa para metadatos (pendiente, fuera de la base)
 
