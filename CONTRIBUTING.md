@@ -110,7 +110,7 @@ Cada push y cada PR hacia `develop`/`main` corre `.github/workflows/ci.yml`:
 | Job | Qué valida | Cómo probarlo antes de subir |
 |---|---|---|
 | Formato de commits | Mensajes de commit y título del PR con `[TAG] Descripción` (tags `[ADD]`, `[UPDATE]`, `[FIX]`, `[DEL]`, `[DOCS]`, `[TEST]`, `[REFACTOR]`, máximo dos) | Revisar los mensajes con [`commit-convention.md`](docs/development/commit-convention.md) |
-| Lint SystemVerilog | `verilator --lint-only -Wall` sobre `Reproductor/ip/*/*.sv` | `verilator --lint-only -Wall -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM Reproductor/ip/hex_ctrl/hex_ctrl.sv` (`sudo apt install verilator`) |
+| Lint SystemVerilog | `verilator --lint-only -Wall` sobre `Reproductor/ip/*/*.sv` | `scripts/hw/docker.sh lint` (Docker, ver [`tests/hw/README.md`](tests/hw/README.md)) o `verilator --lint-only -Wall -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM Reproductor/ip/hex_ctrl/hex_ctrl.sv` (`sudo apt install verilator`) |
 | Compilar firmware | `make -C Reproductor sw` sin warnings; guarda el ELF y el `.map` como artefacto | `make sw` |
 
 Aparte, `.github/workflows/dsp-modelo.yml` prueba el modelo DSP en Python. Solo corre cuando
