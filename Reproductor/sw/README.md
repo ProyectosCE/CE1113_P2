@@ -51,7 +51,7 @@ sw/
 | Módulo | Función | Estado |
 |---|---|---|
 | `player` | Estados (detenido, reproduciendo, pausado), botones, canción actual, tiempo | Básico: falta abrir el WAV al cambiar de canción y el avance automático |
-| `filtros` | Selección con SW[1:0] y procesamiento por muestra | Bypass y filtro en hardware conectados; filtros de software **pendientes** |
+| `filtros` | Selección con SW[1:0] y procesamiento por muestra; los tres filtros están en `dsp_filter` | Bypass y `dsp_filter` conectados; falta cargar los coeficientes de cada filtro y procesar los dos canales |
 | `volumen` | Factor de ganancia a partir del ADC | Básico (lineal); pendiente curva logarítmica |
 | `ui` | HEX (MM:SS, canción), LEDs (filtro y estado), consola | Listo; pendiente pantalla externa |
 | `fat` | FAT32 de la SD: contar, nombrar, abrir y leer los `.wav` | **Pendiente** |
@@ -69,7 +69,7 @@ Sirve como prueba de humo de toda la base:
 | KEY0 | Play / pausa: suena el tono de prueba y corre el tiempo en HEX3–0 |
 | KEY1 | Stop: silencio y tiempo a 00:00 |
 | KEY2 / KEY3 | Canción anterior / siguiente (10 canciones ficticias), número en HEX5–4 |
-| SW[1:0] | Filtro: 0 bypass, 1 hardware, 2 y 3 software (pendientes); se ve en LEDR[1:0] |
+| SW[1:0] | Filtro: 0 bypass, 1 pasa-altos, 2 pasa-banda, 3 ecualizador (todos en `dsp_filter`); se ve en LEDR[1:0]. Por ahora el hardware es paso directo y las posiciones 2 y 3 todavía no lo usan |
 | Potenciómetro | Volumen del tono |
 | LEDR8 / LEDR9 | Reproduciendo / pausado |
 
