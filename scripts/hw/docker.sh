@@ -9,6 +9,10 @@
 #     scripts/hw/docker.sh shell               terminal dentro del contenedor
 #     scripts/hw/docker.sh <comando ...>       cualquier otro comando dentro del contenedor
 #
+# Pasan al contenedor, si están definidas: ONDAS (formas de onda de cocotb),
+# COCOTB_RANDOM_SEED (repetir una semilla) y COCOTB_TEST_FILTER (correr solo las
+# pruebas cuyo nombre coincida).
+#
 # La imagen se construye sola la primera vez (varios minutos, por Verilator) y
 # otra vez solo si cambian el Dockerfile o dsp/requirements.txt. El repositorio
 # se monta en /repo con el usuario actual, así que los archivos generados no
@@ -50,10 +54,13 @@ case "$PWD/" in
 esac
 
 correr() {
-    local tty=()
+    local tty=() vars=() v
     if [ -t 0 ] && [ -t 1 ]; then tty=(-it); fi
+    for v in ONDAS COCOTB_RANDOM_SEED COCOTB_TEST_FILTER; do
+        if [ -n "${!v:-}" ]; then vars+=(-e "$v"); fi
+    done
     imagen
-    docker run --rm "${tty[@]}" --user "$(id -u):$(id -g)" \
+    docker run --rm "${tty[@]}" "${vars[@]}" --user "$(id -u):$(id -g)" \
         -v "$RAIZ:/repo" -w "$TRABAJO" "$IMAGEN" "$@"
 }
 
