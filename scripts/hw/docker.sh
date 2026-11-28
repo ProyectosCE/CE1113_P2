@@ -4,8 +4,8 @@
 # scripts/hw/Dockerfile), para que todo el grupo use las mismas herramientas.
 #
 # Uso (desde cualquier carpeta del repositorio):
-#     scripts/hw/docker.sh lint [módulo ...]   lint de Reproductor/ip igual que el CI
-#                                              (sin módulos: todos)
+#     scripts/hw/docker.sh lint [módulo ...]   lint de Reproductor/ip igual que el CI, con
+#                                              su misma versión de Verilator (sin módulos: todos)
 #     scripts/hw/docker.sh shell               terminal dentro del contenedor
 #     scripts/hw/docker.sh <comando ...>       cualquier otro comando dentro del contenedor
 #
@@ -72,9 +72,11 @@ case "$1" in
                 ARCHIVOS+=("Reproductor/ip/$m/$m.sv")
             done
         fi
-        # Mismo comando que el job lint-sv de .github/workflows/ci.yml
+        # Mismo comando y misma versión de Verilator (la de apt) que el job lint-sv de
+        # .github/workflows/ci.yml
         TRABAJO=/repo
         correr bash -c '
+            verilator() { /usr/bin/verilator "$@"; }
             verilator --version
             fallas=0
             for sv in "$@"; do

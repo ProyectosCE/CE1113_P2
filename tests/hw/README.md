@@ -15,7 +15,7 @@ El script carga `scripts/general/env.sh` (Questa y la licencia SALT) y compila d
 
 ## Entorno Docker: Verilator y cocotb
 
-Además de Questa, el repo trae una imagen de Docker con Verilator 5.040, cocotb 2.0.1 y las
+Además de Questa, el repo trae una imagen de Docker con Verilator, cocotb 2.0.1 y las
 bibliotecas del modelo DSP (`dsp/requirements.txt`), para que todo el grupo haga el lint y las
 simulaciones con las mismas versiones sin instalarlas. Se define en `scripts/hw/Dockerfile` y se
 usa con `scripts/hw/docker.sh`:
@@ -32,9 +32,10 @@ scripts/hw/docker.sh <comando ...>     # cualquier comando, p. ej. verilator --v
 - El repositorio se monta en `/repo` con el usuario actual: lo que se genere dentro del contenedor
   queda a nombre de uno, no de root. El comando corre en la misma carpeta desde la que se llamó.
 - Requiere Docker sin `sudo` (usuario en el grupo `docker`).
-- Verilator se compila desde el código fuente porque cocotb 2 necesita la versión 5.036 o más
-  nueva; el CI usa la de `apt` de Ubuntu 24.04, que es anterior. Si un aviso aparece en una de las
-  dos y no en la otra, se corrige el código para que pase en ambas.
+- La imagen trae dos versiones de Verilator. `docker.sh lint` usa la de `apt` de Ubuntu 24.04
+  (5.020), el mismo paquete que el CI, así que da los mismos avisos. cocotb usa la 5.040, compilada
+  desde el código fuente, porque necesita la 5.036 o más nueva; es la que queda como `verilator`
+  dentro del contenedor.
 
 ## `hex_ctrl` — `tb_hex_ctrl.sv`
 
