@@ -56,9 +56,3 @@ add_interface_port s0 avs_read read Input 1
 add_interface_port s0 avs_readdata readdata Output 32
 add_interface_port s0 avs_write write Input 1
 add_interface_port s0 avs_writedata writedata Input 32
-
-# ---- Parametros ----
-add_parameter NUM_COEF INTEGER 16
-set_parameter_property NUM_COEF DISPLAY_NAME "Numero de coeficientes"
-set_parameter_property NUM_COEF ALLOWED_RANGES 1:255
-set_parameter_property NUM_COEF HDL_PARAMETER true

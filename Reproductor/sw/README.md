@@ -43,7 +43,7 @@ sw/
 | `adc` | LTC2308, conversión continua | Listo |
 | `audio` | Audio Core: espacio libre en el FIFO y escritura de muestras (por sondeo) | Listo; pendiente pasar a interrupción (GIC ID 72) |
 | `hex` | `hex_ctrl_0` | Listo |
-| `dsp` | `dsp_filter_0`: habilitar, coeficientes, procesar una muestra | Listo (el hardware es aún paso directo) |
+| `dsp` | `dsp_filter_0`: habilitar, cargar los 15 coeficientes Q3.15, procesar una muestra de un canal, leer SATURO | Listo |
 | `sdmmc` | Controlador SD/MMC del HPS | **Pendiente** |
 
 ### Reproductor
@@ -69,7 +69,7 @@ Sirve como prueba de humo de toda la base:
 | KEY0 | Play / pausa: suena el tono de prueba y corre el tiempo en HEX3–0 |
 | KEY1 | Stop: silencio y tiempo a 00:00 |
 | KEY2 / KEY3 | Canción anterior / siguiente (10 canciones ficticias), número en HEX5–4 |
-| SW[1:0] | Filtro: 0 bypass, 1 pasa-altos, 2 pasa-banda, 3 ecualizador (todos en `dsp_filter`); se ve en LEDR[1:0]. Por ahora el hardware es paso directo y las posiciones 2 y 3 todavía no lo usan |
+| SW[1:0] | Filtro: 0 bypass, 1 pasa-altos, 2 pasa-banda, 3 ecualizador (todos en `dsp_filter`); se ve en LEDR[1:0]. Hoy solo la posición 1 habilita `dsp_filter`, con los coeficientes de reset (identidad) |
 | Potenciómetro | Volumen del tono |
 | LEDR8 / LEDR9 | Reproduciendo / pausado |
 
