@@ -82,22 +82,29 @@ issue de GitHub por paquete (o por viñeta grande) y una rama `feature/...` por 
 - **Terminado cuando:** play/pausa/stop/anterior/siguiente funcionan con canciones reales, sin
   cortes audibles, y el tiempo en los displays coincide con el de la canción.
 
-### D. Filtros — al menos 3, uno en hardware propio
+### D. Filtros — los tres en hardware propio
 
 **Archivos:** `Reproductor/ip/dsp_filter/dsp_filter.sv`, `tests/hw/tb_dsp_filter.sv`,
 `Reproductor/sw/reproductor/filtros.c`
 
-- [ ] Elegir y diseñar los filtros (opciones del enunciado: pasa-bajos FIR o pasa-altos IIR,
-      pasa-banda o notch, ecualizador de 3 bandas o reverberación). Diseñar los coeficientes con
-      Python/Octave (fs = 44.1 kHz) y guardar el script en el repo.
-- [ ] **Filtro en hardware:** implementar el bloque `PROCESAMIENTO` de `dsp_filter.sv` (por ejemplo
-      FIR de 16 coeficientes con multiplicador-acumulador, estado separado por canal, saturación a
-      16 bits). Subir `VERSION` a `0x02`.
-- [ ] Testbench: comparar la salida contra el modelo en Python/Octave (impulso, escalón, seno,
-      saturación). Documentar casos y resultados en `tests/hw/README.md` **antes** de integrar
-      (lo exige el enunciado).
-- [ ] Dos filtros en software (`FILTRO_SW_1`, `FILTRO_SW_2` en `filtros.c`), con estado por canal.
+Los tres filtros van en `dsp_filter` (hardware propio); ninguno en software. Todos usan el mismo
+núcleo: una cascada de 3 biquads (IIR de segundo orden) que solo cambia en los coeficientes.
+SW[1:0]: 0 = bypass, 1 = pasa-altos, 2 = pasa-banda, 3 = ecualizador de 3 bandas.
+
+- [x] Elegir y diseñar los filtros: pasa-altos IIR (800 Hz), pasa-banda (300–3000 Hz) y
+      ecualizador de 3 bandas. Diseño en Python, comparación FIR contra IIR y modelo bit-exacto en
+      punto fijo con vectores de prueba (rama `feature/procesamiento-dsp`: `dsp/` y `docs/dsp/`).
+- [ ] **Filtro en hardware:** implementar el núcleo biquad en `dsp_filter.sv` (un solo archivo:
+      MAC secuencial, estado separado por canal, redondeo y saturación como el modelo). Subir
+      `VERSION` a `0x02`.
+- [ ] Testbench: comparar la salida contra los vectores del modelo en Python (impulso, escalón,
+      senos, saturación, chirp, ruido). Documentar casos y resultados en `tests/hw/README.md`
+      **antes** de integrar (lo exige el enunciado).
+- [ ] `filtros.c` y `dsp.c`: al cambiar SW[1:0], cargar los coeficientes del filtro elegido en
+      `dsp_filter` y procesar los dos canales (bit CANAL de CTRL).
 - [ ] Medir que el cambio de filtro es < 100 ms y que el bypass no distorsiona.
+- [ ] Extensión (crédito extra, confirmar con el profesor): ecualizador de 5 bandas con el mismo
+      núcleo biquad.
 - **Terminado cuando:** con SW[1:0] se escuchan claramente los 4 modos y hay evidencia (gráficas
   de respuesta en frecuencia, capturas) para el README.
 
@@ -166,8 +173,8 @@ Ajustar al tamaño del grupo. Con cuatro personas, por ejemplo:
 |---|---|---|
 | 1 | A, luego G | Bajo nivel del HPS (registros SD/MMC, arranque) |
 | 2 | B, luego C | Formatos de archivo, flujo de audio, integración |
-| 3 | D (hardware y testbench), luego I | HDL y DSP |
-| 4 | D (filtros en software), E, F, H | Software y Platform Designer |
+| 3 | D (diseño, hardware, testbench y `filtros.c`), luego I | HDL y DSP |
+| 4 | E, F, H | Software y Platform Designer |
 | Todos | J | Cada uno documenta lo suyo; una persona consolida |
 
 Una sola persona a la vez debe modificar `reproductor.qsys` (ver la guía de colaboración).
@@ -186,7 +193,7 @@ Una sola persona a la vez debe modificar `reproductor.qsys` (ver la guía de col
 | Reproducción continua | C | Pendiente |
 | Tiempo MM:SS en 7 segmentos, manejado por hardware | — | **Hecho** (`hex_ctrl`) |
 | Metadatos, número de canción y filtro en pantalla externa | F | Pendiente |
-| ≥3 filtros por switches, uno en HDL propio verificado aisladamente | D | Interfaz lista; faltan los filtros |
+| ≥3 filtros por switches, uno en HDL propio verificado aisladamente | D | Los tres en hardware: diseño y modelo listos; falta el HDL |
 | Cambio de filtro < 100 ms; bypass sin distorsión | D | Pendiente de medir |
 | Volumen con potenciómetro por el ADC | E | Básico funcionando |
 | Audio por la FPGA (IP de audio), no por el HPS | — | **Hecho** |

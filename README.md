@@ -32,10 +32,10 @@ Al finalizar este proyecto, el estudiante habrá puesto en práctica metodologí
 Reproductor de audio WAV sobre la tarjeta **DE1-SoC** (Cyclone V SoC):
 
 - **HPS (ARM Cortex-A9) en bare metal:** lectura de canciones desde la microSD, metadatos,
-  lógica de reproducción, filtros en software e interfaz de usuario.
+  lógica de reproducción, selección de filtros e interfaz de usuario.
 - **FPGA (Platform Designer):** salida de audio por el codec WM8731, botones con interrupción,
   switches, ADC para el volumen, y hardware propio: controlador de displays de 7 segmentos
-  (`hex_ctrl`) y filtro de audio (`dsp_filter`).
+  (`hex_ctrl`) y filtro de audio (`dsp_filter`), que implementa los tres filtros.
 
 Arquitectura, decisiones de diseño y estado de cada módulo: [`docs/README.md`](docs/README.md).
 
