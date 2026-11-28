@@ -4,7 +4,7 @@ El diseño y modelado de los filtros se hace en Python 3.11 o superior dentro de
 
 ## Requisitos
 
-- Python 3.11 con el módulo `venv`
+- Python 3.11 o superior con el módulo `venv`
   (Ubuntu/Debian: `sudo apt install python3.11 python3.11-venv`)
   (Ubuntu 24.04/26.04: `sudo apt install python3-venv`)
 
