@@ -1,0 +1,134 @@
+{
+  "signal": [
+    {
+      "name": "ciclo",
+      "wave": "================",
+      "data": [
+        "−1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "…",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22"
+      ]
+    },
+    {
+      "name": "clk",
+      "wave": "p........|......"
+    },
+    {},
+    [
+      "Avalon-MM",
+      {
+        "name": "avs_write",
+        "wave": "010......|......"
+      },
+      {
+        "name": "avs_address",
+        "wave": "x=x......|...==x",
+        "data": [
+          "DATA_IN",
+          "STATUS",
+          "DATA_OUT"
+        ]
+      },
+      {
+        "name": "avs_writedata",
+        "wave": "x=x......|......",
+        "data": [
+          "x[n]"
+        ]
+      },
+      {
+        "name": "avs_read",
+        "wave": "0........|...1.0"
+      },
+      {
+        "name": "avs_readdata",
+        "wave": "x........|....==",
+        "data": [
+          "LISTO = 1",
+          "y[n]"
+        ]
+      }
+    ],
+    {},
+    [
+      "Núcleo",
+      {
+        "name": "fsm",
+        "wave": "=.=....==|.===..",
+        "data": [
+          "REPOSO",
+          "MAC",
+          "CIERRE",
+          "MAC",
+          "CIERRE",
+          "SALIDA",
+          "REPOSO"
+        ]
+      },
+      {
+        "name": "etapa",
+        "wave": "x.=.....=|=.x...",
+        "data": [
+          "0",
+          "1",
+          "2"
+        ]
+      },
+      {
+        "name": "paso",
+        "wave": "x.=====x=|=x....",
+        "data": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "0",
+          "4"
+        ]
+      }
+    ],
+    {},
+    [
+      "STATUS y DATA_OUT",
+      {
+        "name": "OCUPADO",
+        "wave": "0.1......|...0.."
+      },
+      {
+        "name": "LISTO",
+        "wave": "1.0......|...1.."
+      },
+      {
+        "name": "DATA_OUT",
+        "wave": "=........|...=..",
+        "data": [
+          "y[n−1]",
+          "y[n]"
+        ]
+      }
+    ]
+  ],
+  "head": {
+    "text": "Procesamiento de una muestra con el filtro activo (EN = 1)"
+  },
+  "foot": {
+    "text": "Los ciclos 8 a 16 (resto de la etapa 1 y etapa 2) se omiten: repiten MAC × 5 y CIERRE"
+  },
+  "config": {
+    "hscale": 1
+  }
+}

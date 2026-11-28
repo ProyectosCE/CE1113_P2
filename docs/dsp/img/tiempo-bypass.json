@@ -1,0 +1,106 @@
+{
+  "signal": [
+    {
+      "name": "ciclo",
+      "wave": "=======",
+      "data": [
+        "−1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    {
+      "name": "clk",
+      "wave": "p......"
+    },
+    {},
+    [
+      "Avalon-MM",
+      {
+        "name": "avs_write",
+        "wave": "010...."
+      },
+      {
+        "name": "avs_address",
+        "wave": "x=x==x.",
+        "data": [
+          "DATA_IN",
+          "STATUS",
+          "DATA_OUT"
+        ]
+      },
+      {
+        "name": "avs_writedata",
+        "wave": "x=x....",
+        "data": [
+          "x[n]"
+        ]
+      },
+      {
+        "name": "avs_read",
+        "wave": "0..1.0."
+      },
+      {
+        "name": "avs_readdata",
+        "wave": "x...==x",
+        "data": [
+          "LISTO = 1",
+          "x[n]"
+        ]
+      }
+    ],
+    {},
+    [
+      "Núcleo",
+      {
+        "name": "fsm",
+        "wave": "=.==...",
+        "data": [
+          "REPOSO",
+          "SALIDA",
+          "REPOSO"
+        ]
+      },
+      {
+        "name": "x1, x2, y1, y2, residuo",
+        "wave": "=......",
+        "data": [
+          "sin cambios"
+        ]
+      }
+    ],
+    {},
+    [
+      "STATUS y DATA_OUT",
+      {
+        "name": "OCUPADO",
+        "wave": "0.10..."
+      },
+      {
+        "name": "LISTO",
+        "wave": "1.01..."
+      },
+      {
+        "name": "DATA_OUT",
+        "wave": "=..=...",
+        "data": [
+          "y[n−1]",
+          "x[n]"
+        ]
+      }
+    ]
+  ],
+  "head": {
+    "text": "Procesamiento de una muestra en bypass (EN = 0)"
+  },
+  "foot": {
+    "text": "La muestra sale igual a la entrada en 2 ciclos; el estado del filtro no se toca"
+  },
+  "config": {
+    "hscale": 1
+  }
+}

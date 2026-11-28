@@ -1,0 +1,89 @@
+{
+  "signal": [
+    {
+      "name": "clk",
+      "wave": "p......"
+    },
+    {},
+    [
+      "Avalon-MM",
+      {
+        "name": "avs_write",
+        "wave": "01.0..."
+      },
+      {
+        "name": "avs_address",
+        "wave": "x==x=x.",
+        "data": [
+          "COEF_IDX",
+          "COEF_DATA",
+          "COEF_DATA"
+        ]
+      },
+      {
+        "name": "avs_writedata",
+        "wave": "x==x...",
+        "data": [
+          "6",
+          "0xFFFF1650"
+        ]
+      },
+      {
+        "name": "avs_read",
+        "wave": "0...10."
+      },
+      {
+        "name": "avs_readdata",
+        "wave": "x....=x",
+        "data": [
+          "0xFFFF1650"
+        ]
+      }
+    ],
+    {},
+    [
+      "Registros internos",
+      {
+        "name": "COEF_IDX",
+        "wave": "=.=....",
+        "data": [
+          "anterior",
+          "6"
+        ]
+      },
+      {
+        "name": "coef[6]",
+        "wave": "=..=...",
+        "data": [
+          "anterior",
+          "0x31650"
+        ]
+      },
+      {
+        "name": "x1, x2, y1, y2, residuo",
+        "wave": "=..=...",
+        "data": [
+          "valores",
+          "0"
+        ]
+      },
+      {
+        "name": "SATURO",
+        "wave": "1..0..."
+      },
+      {
+        "name": "OCUPADO",
+        "wave": "0......"
+      }
+    ]
+  ],
+  "head": {
+    "text": "Carga del coeficiente 6 (b1 de la etapa 1) y lectura de vuelta"
+  },
+  "foot": {
+    "text": "La escritura de COEF_DATA guarda el coeficiente y borra el estado y SATURO en el mismo flanco"
+  },
+  "config": {
+    "hscale": 1
+  }
+}

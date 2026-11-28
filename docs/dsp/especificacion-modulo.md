@@ -1,0 +1,576 @@
+# Especificación del módulo `dsp_filter`
+
+Este documento especifica, antes de escribir el RTL, el módulo de hardware
+propio que aplica los filtros de audio del reproductor: su interfaz
+Avalon-MM, el mapa de registros, el acceso a los coeficientes y la forma de
+usarlo desde el ARM. Es la referencia para el RTL (Fase 4), el testbench
+(Fase 5) y el driver `dsp.c` (Fase 7).
+
+El módulo implementa exactamente la ruta de datos del modelo bit-exacto
+descrito en [modelo-punto-fijo.md](modelo-punto-fijo.md); los filtros y sus
+coeficientes están en [diseno-filtros-flotante.md](diseno-filtros-flotante.md).
+
+Archivo del hardware: `Reproductor/ip/dsp_filter/dsp_filter.sv` (núcleo e
+interfaz en el mismo archivo).
+
+---
+
+## 1. Alcance
+
+`dsp_filter` es un esclavo Avalon-MM en el puente liviano HPS–FPGA. El ARM le
+escribe una muestra de 16 bits, el módulo la filtra con una cascada de
+3 biquads y el ARM lee el resultado. Los tres filtros del reproductor
+(pasa-altos, pasa-banda y ecualizador de 3 bandas) son el mismo hardware con
+distintos coeficientes; el software elige el filtro cargando sus
+15 coeficientes.
+
+| Característica | Valor |
+|---|---|
+| Dirección base | `0xFF20_5000` (`LW_BASE + 0x5000`, `DSP_BASE` en `hw.h`) |
+| Reloj | 50 MHz |
+| Muestras | 16 bits con signo (Q1.15), un canal por vez |
+| Canales | 2 (izquierdo y derecho), con estado independiente |
+| Filtro | cascada de 3 biquads en Forma Directa I |
+| Coeficientes | 15 (3 etapas × 5), Q3.15 de 18 bits |
+| Tiempo por muestra | 20 ciclos (0,4 µs) |
+| Bypass | la muestra sale igual a la entrada, sin tocar el estado |
+
+### 1.1 Nombres usados en este documento y en el RTL
+
+Los registros que ve el ARM van en mayúsculas (`CTRL`, `COEF_DATA`). Las
+señales internas van en minúsculas y son las mismas que tendrá
+`dsp_filter.sv`:
+
+| Nombre | Qué es |
+|---|---|
+| `coef[0:14]` | banco de los 15 coeficientes de 18 bits |
+| `canal_act` | canal de la muestra en proceso, capturado de `CTRL.CANAL` |
+| `x` | entrada de la etapa en proceso, 24 bits |
+| `producto` | salida del multiplicador, 42 bits |
+| `acc` | acumulador de 48 bits de la MAC |
+| `etapa` | contador de la etapa en proceso (0 a 2) |
+| `paso` | contador del producto dentro de la etapa (0 a 4) |
+| `x1`, `x2`, `y1`, `y2` | historiales de cada etapa, 24 bits, por canal |
+| `residuo` | error de redondeo guardado de cada etapa, 15 bits, por canal |
+| `saturo` | bit pegajoso de saturación (se ve en `STATUS`) |
+
+---
+
+## 2. Decisiones de diseño
+
+| Decisión | Elección | Por qué |
+|---|---|---|
+| Arquitectura de la MAC | secuencial, un solo multiplicador | una muestra usa 20 de los 1133 ciclos que hay en un periodo de muestreo a 44,1 kHz (50 MHz / 44 100); 15 multiplicadores en paralelo gastarían 15 bloques DSP sin necesidad |
+| Multiplicar y acumular | en el mismo ciclo, sin pipeline | un bloque DSP en modo 27×27 debería cumplir 20 ns; si la Fase 6 muestra que no, se agrega un registro (un ciclo más por producto) |
+| Control | FSM de 4 estados (`REPOSO`, `MAC`, `CIERRE_ETAPA`, `SALIDA`) | sección 9 |
+| Estado del filtro | registros (flip-flops), separado por etapa y por canal | unos 670 bits; una RAM interna agregaría latencia sin ganancia; separado por etapa refleja el modelo uno a uno |
+| Canal | bit `CTRL.CANAL`, capturado al escribir `DATA_IN` | se mantiene el registro del esqueleto; el tiempo sobra para una escritura extra por muestra |
+| Coeficientes | acceso indirecto con `COEF_IDX` y `COEF_DATA`, sin autoincremento | 15 coeficientes no caben en las 8 direcciones del módulo; cargar un filtro son 30 escrituras, muy por debajo de los 100 ms del requisito |
+| Cambio de filtro | escribir `COEF_DATA` borra el estado de los dos canales | el modelo reinicia el estado al cargar coeficientes; el hardware lo garantiza aunque el software no use `LIMPIAR` |
+| Valor de reset de los coeficientes | cada etapa como identidad (`b0 = 1,0`) | si se habilita el filtro sin cargar coeficientes, el audio pasa sin cambios en vez de salir silencio o basura |
+| Saturación | bit pegajoso `STATUS.SATURO` | queda en 1 hasta que se borre, así no se pierde una saturación de una sola muestra; sirve para depurar y como evidencia |
+| Interfaz Avalon-MM | la del esqueleto, sin cambios | el `_hw.tcl` y `reproductor.qsys` no se tocan |
+
+---
+
+## 3. Interfaz Avalon-MM
+
+| Señal | Dirección | Ancho | Descripción |
+|---|---|---:|---|
+| `clk` | entrada | 1 | reloj de 50 MHz |
+| `reset` | entrada | 1 | reset síncrono, activo en alto |
+| `avs_address` | entrada | 3 | dirección en palabras de 32 bits (8 registros) |
+| `avs_read` | entrada | 1 | lectura |
+| `avs_readdata` | salida | 32 | dato leído, con latencia fija de 1 ciclo |
+| `avs_write` | entrada | 1 | escritura |
+| `avs_writedata` | entrada | 32 | dato a escribir |
+
+- **Sin `waitrequest`:** el módulo nunca detiene al ARM. Las escrituras toman
+  efecto en el flanco en que llegan y las lecturas responden al ciclo
+  siguiente.
+- **Sin `byteenable`:** todos los accesos son de 32 bits (`REG32` en el
+  driver). La dirección en bytes es `avs_address × 4`.
+- **Procesamiento asíncrono para el ARM:** escribir `DATA_IN` solo arranca el
+  cálculo; el ARM consulta `STATUS.LISTO` hasta que el resultado esté listo.
+
+---
+
+## 4. Mapa de registros
+
+| Offset | Registro | Acceso | Reset | Contenido |
+|---|---|---|---|---|
+| `0x00` | `CTRL` | RW | `0x0` | control: `EN`, `LIMPIAR`, `CANAL` |
+| `0x04` | `STATUS` | R | `0x0` | estado: `LISTO`, `OCUPADO`, `SATURO` |
+| `0x08` | `DATA_IN` | RW | `0x0` | muestra de entrada; escribirla inicia el procesamiento |
+| `0x0C` | `DATA_OUT` | R | `0x0` | resultado de la última muestra |
+| `0x10` | `COEF_IDX` | RW | `0x0` | índice del coeficiente (0 a 14) |
+| `0x14` | `COEF_DATA` | RW | ver 5.3 | coeficiente Q3.15 en la posición `COEF_IDX` |
+| `0x18` | `INFO` | R | `0xD5F1_020F` | identificación del módulo |
+| `0x1C` | — | R | `0x0` | reservado: se lee 0, las escrituras se ignoran |
+
+En todos los registros, los bits no descritos se leen como 0 y se ignoran al
+escribir.
+
+### 4.1 `CTRL` (`0x00`, RW)
+
+| Bit | Campo | Acceso | Reset | Descripción |
+|---:|---|---|---:|---|
+| 0 | `EN` | RW | 0 | 1 = filtrar; 0 = bypass (la muestra sale igual a la entrada y el estado no cambia) |
+| 1 | `LIMPIAR` | W | 0 | escribir 1 borra el estado de los dos canales (`x1`, `x2`, `y1`, `y2`, `residuo`) y el bit `SATURO`; se lee siempre como 0 |
+| 2 | `CANAL` | RW | 0 | canal de la próxima muestra: 0 = izquierdo, 1 = derecho |
+
+Una escritura en `CTRL` cambia los tres campos a la vez: para cambiar de canal
+el software debe volver a escribir el valor de `EN` que quiere mantener, y
+`LIMPIAR` en 0. `CANAL` se captura en el momento en que se escribe `DATA_IN`,
+así que cambiarlo mientras se procesa una muestra no afecta a esa muestra.
+
+### 4.2 `STATUS` (`0x04`, R)
+
+| Bit | Campo | Reset | Descripción |
+|---:|---|---:|---|
+| 0 | `LISTO` | 0 | `DATA_OUT` tiene el resultado de la última muestra escrita |
+| 1 | `OCUPADO` | 0 | el núcleo está procesando una muestra |
+| 2 | `SATURO` | 0 | alguna etapa saturó su salida desde la última vez que se borró (pegajoso) |
+
+- En el mismo flanco en que se escribe `DATA_IN`, `LISTO` baja y `OCUPADO`
+  sube. Así, una lectura de `STATUS` justo después de la escritura nunca ve
+  el `LISTO` de la muestra anterior (igual que en el esqueleto).
+- `LISTO` se queda en 1 hasta la siguiente escritura de `DATA_IN`.
+- `SATURO` se enciende cuando la salida de cualquier etapa, en cualquier
+  canal, se satura a 24 bits; es lo mismo que cuenta `saturations` en
+  `fixed_model.py`. La saturación final de 24 a 16 bits no lo enciende (solo
+  puede ocurrir al redondear un valor que ya está en el tope, y el modelo
+  tampoco la cuenta). Se borra con `CTRL.LIMPIAR` o al escribir `COEF_DATA`.
+
+### 4.3 `DATA_IN` (`0x08`, RW)
+
+| Bits | Acceso | Descripción |
+|---|---|---|
+| 15:0 | W | muestra de 16 bits con signo (Q1.15); escribirla inicia el procesamiento |
+| 31:0 | R | última muestra aceptada, extendida en signo a 32 bits |
+
+Si se escribe mientras `OCUPADO = 1`, la escritura se descarta por completo:
+`DATA_IN` no cambia y no se inicia otro procesamiento.
+
+### 4.4 `DATA_OUT` (`0x0C`, R)
+
+| Bits | Descripción |
+|---|---|
+| 31:0 | resultado de 16 bits con signo, extendido en signo a 32 bits |
+
+Es válido cuando `STATUS.LISTO = 1`. Mientras se procesa conserva el resultado
+anterior. En bypass es igual a la muestra de entrada.
+
+### 4.5 `COEF_IDX` (`0x10`, RW)
+
+| Bits | Descripción |
+|---|---|
+| 7:0 | índice del coeficiente al que acceden las lecturas y escrituras de `COEF_DATA` |
+
+Acepta cualquier valor de 0 a 255, pero solo 0 a 14 son índices válidos
+(sección 5).
+
+### 4.6 `COEF_DATA` (`0x14`, RW)
+
+| Bits | Acceso | Descripción |
+|---|---|---|
+| 17:0 | W | coeficiente Q3.15; se guarda en `coef[COEF_IDX]`. Los bits 31:18 se ignoran |
+| 31:0 | R | `coef[COEF_IDX]` extendido en signo a 32 bits |
+
+- Una escritura con índice válido guarda el coeficiente **y borra el estado
+  de los dos canales y el bit `SATURO`**, como un `CTRL.LIMPIAR`.
+- Con índice no válido (15 o mayor), la escritura se ignora por completo
+  (no guarda nada ni borra el estado) y la lectura devuelve 0.
+
+### 4.7 `INFO` (`0x18`, R)
+
+| Bits | Campo | Valor | Descripción |
+|---|---|---|---|
+| 31:16 | `ID` | `0xD5F1` | identifica al módulo |
+| 15:8 | `VERSION` | `0x02` | `0x01` = esqueleto de paso directo; `0x02` = cascada de biquads |
+| 7:0 | `NUM_COEF` | `0x0F` | número de coeficientes (15) |
+
+---
+
+## 5. Coeficientes: acceso indirecto
+
+### 5.1 Cómo funciona
+
+El filtro necesita 15 coeficientes, pero el módulo solo tiene 8 direcciones.
+Por eso los coeficientes no tienen un registro cada uno: se accede a ellos a
+través de una "ventanilla".
+
+- `COEF_IDX` elige cuál coeficiente se va a leer o escribir.
+- `COEF_DATA` es la ventanilla: escribir en ella guarda el valor en
+  `coef[COEF_IDX]`, y leerla devuelve `coef[COEF_IDX]`.
+
+`COEF_IDX` solo sirve para que el ARM acceda al banco. Al filtrar, el núcleo
+no lo usa: lee directamente `coef[etapa·5 + paso]` con sus propios contadores,
+así que el valor que quede en `COEF_IDX` no afecta el filtrado.
+
+### 5.2 Orden de los índices
+
+Es el mismo orden de `coefs.hex` en `dsp/vectors/`, de modo que el testbench
+puede cargar el archivo tal cual.
+
+| Índice | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Etapa | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 2 |
+| Coeficiente | b0 | b1 | b2 | a1 | a2 | b0 | b1 | b2 | a1 | a2 | b0 | b1 | b2 | a1 | a2 |
+
+Índice = `etapa·5 + paso`, con `paso` = 0 para b0, 1 para b1, 2 para b2,
+3 para a1 y 4 para a2. Los `a` se guardan con el signo que tienen en la
+ecuación del filtro; la MAC resta sus productos (no se niegan al cargarlos).
+
+### 5.3 Formato y valores de reset
+
+Los coeficientes son Q3.15 de 18 bits en complemento a dos: el valor real es
+el entero dividido entre 2^15 = 32768, con rango [−4, 4).
+
+Al reset, cada etapa queda como identidad (`y = x`):
+
+| Índices | Valor |
+|---|---|
+| 0, 5, 10 (los `b0`) | `0x08000` (1,0) |
+| todos los demás | `0x00000` |
+
+### 5.4 Ejemplo
+
+Coeficiente `b1` de la etapa 1 del ecualizador a 44,1 kHz (el peaking de
+1 kHz), índice 6. En `dsp/vectors/44100/equalizer/coefs.hex` vale `31650`,
+que en 18 bits es −59824, es decir −59824 / 32768 ≈ −1,826.
+
+```c
+REG32(DSP_COEF_IDX)  = 6;            /* elegir el coeficiente 6 */
+REG32(DSP_COEF_DATA) = 0xFFFF1650;   /* −59824 extendido en signo a 32 bits */
+```
+
+1. La primera escritura solo guarda 6 en `COEF_IDX`.
+2. La segunda guarda los bits 17:0 (`0x31650`) en `coef[6]` y, en el mismo
+   flanco, borra el estado de los dos canales y `SATURO`.
+
+Para leerlo de vuelta se escribe 6 en `COEF_IDX` y se lee `COEF_DATA`, que
+devuelve `0xFFFF1650`.
+
+---
+
+## 6. Uso desde el ARM
+
+Los nombres de las macros son los de `Reproductor/sw/drivers/dsp.c`.
+
+### 6.1 Inicialización
+
+1. Leer `INFO` y comprobar `ID = 0xD5F1` y `VERSION = 0x02`.
+2. Escribir `CTRL = LIMPIAR` (bypass, estado en cero).
+
+### 6.2 Cambio de filtro
+
+Se escriben los 15 coeficientes del filtro nuevo y luego se habilita:
+
+```c
+for (unsigned i = 0; i < 15; ++i) {
+    REG32(DSP_COEF_IDX)  = i;
+    REG32(DSP_COEF_DATA) = (uint32_t)c[i];   /* c[i]: int32_t, Q3.15 */
+}
+REG32(DSP_CTRL) = 1u;                         /* EN = 1 */
+```
+
+No hace falta `LIMPIAR`: cada escritura de `COEF_DATA` ya borra el estado. El
+cambio se hace entre dos pares de muestras, no entre la muestra izquierda y
+la derecha de un mismo par. Son 31 escrituras (unos pocos microsegundos), muy
+por debajo de los 100 ms que pide el requisito; el tiempo real se mide en la
+Fase 7.
+
+Para pasar a bypass basta con `CTRL = 0`: no se cargan coeficientes y el
+estado se conserva.
+
+### 6.3 Procesamiento de un par estéreo
+
+El mismo procedimiento sirve con el filtro activo o en bypass.
+
+```c
+uint32_t en = filtrar ? 1u : 0u;
+
+REG32(DSP_CTRL)    = en | (0u << 2);              /* CANAL = izquierdo */
+REG32(DSP_DATA_IN) = (uint32_t)(uint16_t)izq;
+while ((REG32(DSP_STATUS) & 1u) == 0) { }         /* esperar LISTO */
+izq = (int16_t)REG32(DSP_DATA_OUT);
+
+REG32(DSP_CTRL)    = en | (1u << 2);              /* CANAL = derecho */
+REG32(DSP_DATA_IN) = (uint32_t)(uint16_t)der;
+while ((REG32(DSP_STATUS) & 1u) == 0) { }
+der = (int16_t)REG32(DSP_DATA_OUT);
+```
+
+El driver real limita la espera a un número de intentos (hoy 100), como
+`dsp_procesar()`; con 20 ciclos por muestra el margen sobra.
+
+---
+
+## 7. Casos especiales
+
+| Situación | Comportamiento |
+|---|---|
+| Escribir `DATA_IN` con `OCUPADO = 1` | se descarta por completo |
+| Escribir `CTRL`, `COEF_IDX` o `COEF_DATA` con `OCUPADO = 1` | uso no permitido: el resultado de la muestra en proceso no está definido. No ocurre si el software espera `LISTO` |
+| `COEF_IDX` ≥ 15 | escrituras de `COEF_DATA` ignoradas, lecturas en 0 |
+| Escribir `COEF_DATA` con índice válido | guarda el coeficiente y borra el estado y `SATURO` |
+| `CTRL.EN = 0` (bypass) | la muestra pasa por `DATA_IN` → `LISTO` → `DATA_OUT` sin cambios; el estado no se toca |
+| Pasar de bypass a filtrar | se continúa con el estado que había antes del bypass |
+| Reset | registros en 0, estado en cero, coeficientes en identidad, `LISTO = 0` |
+| Escribir en `INFO`, `STATUS`, `DATA_OUT` o `0x1C` | se ignora |
+
+---
+
+## 8. Ruta de datos
+
+### 8.1 Diagrama de bloques
+
+Los bloques en gris son registros que ve el ARM (sección 4); los demás son
+internos. La FSM no se dibuja conectada a cada bloque para no saturar el
+diagrama: controla todo a través de su estado y de los contadores `etapa` y
+`paso` (sección 8.3).
+
+```mermaid
+flowchart TB
+    CIDX["COEF_IDX"] -- "índice" --> COEF
+    CDAT["COEF_DATA"] -- "dato" --> COEF
+    DIN["DATA_IN<br/>16 b"] -- "× 256" --> X
+    CTRL["CTRL<br/>EN, LIMPIAR, CANAL"] -.-> FSM
+
+    COEF["coef[0:14]<br/>15 × 18 b"] --> MCO["Mux de coeficiente<br/>coef[etapa·5 + paso]"]
+    X["x<br/>24 b"] --> MOP["Mux de operando<br/>x, x1, x2, y1, y2 según paso"]
+    EST["Estado [canal_act][etapa]<br/>x1, x2, y1, y2: 24 b · residuo: 15 b"] --> MOP
+    MCO --> MUL["Multiplicador<br/>24 × 18 → 42 b"]
+    MOP --> MUL
+    MUL -- "producto" --> SUM["Suma o resta<br/>resta si paso ≥ 3"]
+    SUM --> ACC["acc<br/>48 b"]
+    ACC -- "realimentación" --> SUM
+    EST -- "residuo al iniciar la etapa" --> ACC
+    ACC --> RED["Redondeo y saturación<br/>y = sat24(redondear(acc))"]
+    RED -- "y, residuo nuevo" --> EST
+    RED -- "y: siguiente etapa" --> X
+    X -- "tras la etapa 2" --> SAL["Salida<br/>redondeo 24 → 16 b"]
+    SAL --> DOUT["DATA_OUT<br/>16 b"]
+    DIN -- "bypass" --> DOUT
+
+    FSM["FSM<br/>estado, etapa, paso, canal_act"] -.-> STATUS["STATUS<br/>LISTO, OCUPADO, SATURO"]
+
+    classDef arm fill:#eeeeee,stroke:#888888,color:#222222
+    class CTRL,CIDX,CDAT,DIN,DOUT,STATUS arm
+```
+
+Recorrido de una muestra con el filtro activo:
+
+1. Al escribir `DATA_IN`, la muestra se extiende a 24 bits (`<<8`) y se guarda
+   en `x`; `acc` se carga con el `residuo` de la etapa 0 del canal.
+2. Durante 5 ciclos, el multiplexor de operando y el de coeficiente eligen el
+   par que corresponde a `paso`, y `acc` suma o resta el `producto`.
+3. Al cerrar la etapa, el bloque de redondeo calcula `y` y el residuo nuevo,
+   el estado de la etapa se desplaza (`x2 ← x1 ← x`, `y2 ← y1 ← y`) y `y` pasa
+   a `x` como entrada de la siguiente etapa.
+4. Después de la etapa 2, `x` se redondea a 16 bits, se satura y va a
+   `DATA_OUT`.
+
+En bypass, `DATA_IN` va directo a `DATA_OUT` y el núcleo no toca el estado.
+
+### 8.2 Anchos de las señales
+
+Son los mismos de [modelo-punto-fijo.md](modelo-punto-fijo.md), sección 1.
+
+| Señal | Ancho | Formato | De dónde sale |
+|---|---:|---|---|
+| `DATA_IN`, `DATA_OUT` | 16 bits | Q1.15 | registros del ARM |
+| `x`, `x1`, `x2`, `y1`, `y2` | 24 bits | Q1.23 | muestra `<<8` o salida de una etapa |
+| `coef[i]` | 18 bits | Q3.15 | `COEF_DATA` bits 17:0 |
+| `producto` | 42 bits | Q4.38 | operando (24) × coeficiente (18) |
+| `acc` | 48 bits | Q10.38 | suma de hasta 5 productos más el residuo |
+| `q` | 33 bits | — | `(acc + 2^14) >>> 15`, antes de saturar |
+| `residuo` | 15 bits | — | `acc − q · 2^15`, en [−2^14, 2^14) |
+| `y` | 24 bits | Q1.23 | `q` saturado a 24 bits |
+
+### 8.3 Cómo controla la FSM la ruta de datos
+
+La FSM no necesita una señal de control por bloque: casi todo se deriva de
+su estado y de los contadores.
+
+| Qué se controla | Cómo |
+|---|---|
+| Operando del multiplicador | `paso`: 0 = `x`, 1 = `x1`, 2 = `x2`, 3 = `y1`, 4 = `y2` de `[canal_act][etapa]` |
+| Coeficiente del multiplicador | `coef[etapa·5 + paso]` |
+| Sumar o restar | resta cuando `paso ≥ 3` (los productos de `a1` y `a2`) |
+| Carga de `acc` | con el `residuo` de `[canal_act][etapa]` al empezar cada etapa |
+| Escritura del estado | solo en `CIERRE_ETAPA`, en `[canal_act][etapa]` |
+| Borrado del estado | `CTRL.LIMPIAR = 1` o escritura de `COEF_DATA` con índice válido: los dos canales y `saturo` a cero |
+
+### 8.4 Recursos esperados
+
+Es una estimación para comparar con lo que reporte Quartus en la Fase 6.
+
+| Recurso | Estimación | Detalle |
+|---|---|---|
+| Bloques DSP | 1 | multiplicador 24 × 18 en modo 27 × 27 |
+| Flip-flops del estado | 666 | 2 canales × 3 etapas × (4 × 24 + 15) |
+| Flip-flops de coeficientes | 270 | 15 × 18 |
+| Otros flip-flops | ~150 | `acc`, `x`, registros del ARM, contadores y FSM |
+| ALMs | unos cientos | sobre todo el multiplexor de operando (elige entre 25 valores de 24 bits) |
+
+La Cyclone V de la DE1-SoC (5CSEMA5) tiene 32 070 ALMs y 87 bloques DSP, así
+que el módulo debería ocupar menos del 5 % de la FPGA.
+
+---
+
+## 9. Máquina de estados (FSM)
+
+### 9.1 Para qué sirve
+
+La ruta de datos (sección 8) sabe multiplicar, sumar y guardar, pero no sabe
+qué operación toca en cada ciclo. La FSM es el control: guarda en qué paso va
+el cálculo y, en cada flanco de reloj, decide qué hace la ruta de datos y cuál
+es el siguiente estado. Además del estado usa dos contadores, `etapa` (0 a 2)
+y `paso` (0 a 4), y el canal capturado `canal_act`.
+
+### 9.2 Diagrama de estados
+
+```mermaid
+flowchart LR
+    INI(( )) -- "reset" --> REPOSO
+    REPOSO(["REPOSO"]) -- "DATA_IN, EN = 1" --> MAC(["MAC"])
+    MAC -- "paso 0 a 3" --> MAC
+    MAC -- "paso = 4" --> CIERRE(["CIERRE_ETAPA"])
+    CIERRE -- "etapa 0 o 1" --> MAC
+    CIERRE -- "etapa = 2" --> SALIDA(["SALIDA"])
+    REPOSO -. "DATA_IN, EN = 0" .-> SALIDA
+    SALIDA -- "siempre" --> REPOSO
+```
+
+La flecha punteada es el bypass: la muestra no pasa por la MAC.
+
+### 9.3 Estados
+
+Las acciones ocurren en el flanco de reloj al final de cada ciclo en ese
+estado.
+
+| Estado | Ciclos | Acciones | Siguiente estado |
+|---|---:|---|---|
+| `REPOSO` | — | Espera una escritura en `DATA_IN`. Al llegar: `LISTO ← 0`, `OCUPADO ← 1`, `canal_act ← CTRL.CANAL`, `x ← DATA_IN · 256`. Si `EN = 1`: `acc ← residuo[canal_act][0]`, `etapa ← 0`, `paso ← 0` | `MAC` si `EN = 1`; `SALIDA` si `EN = 0`; si no hay escritura, se queda en `REPOSO` |
+| `MAC` | 5 por etapa | `acc ← acc ± coef[etapa·5 + paso] · operando(paso)`; resta si `paso ≥ 3`. `paso ← paso + 1` | `MAC` si `paso < 4`; `CIERRE_ETAPA` si `paso = 4` |
+| `CIERRE_ETAPA` | 1 por etapa | Calcula `y` y el residuo nuevo; en `[canal_act][etapa]`: `x2 ← x1`, `x1 ← x`, `y2 ← y1`, `y1 ← y`, `residuo ← residuo nuevo`. `saturo ← 1` si `y` se saturó. `x ← y`, `paso ← 0`. Si `etapa < 2`: `etapa ← etapa + 1` y `acc ← residuo` de la etapa siguiente | `MAC` si `etapa < 2`; `SALIDA` si `etapa = 2` |
+| `SALIDA` | 1 | `DATA_OUT ← sat16((x + 2^7) >>> 8)`, `LISTO ← 1`, `OCUPADO ← 0` | `REPOSO` |
+
+En bypass, `REPOSO` deja la muestra en `x` (multiplicada por 256) y va directo
+a `SALIDA`. Como `(d · 256 + 2^7) >>> 8 = d` para cualquier muestra `d`,
+`SALIDA` devuelve la muestra exacta sin necesitar un camino aparte ni guardar
+el valor de `EN`.
+
+### 9.4 Ciclos por muestra
+
+| Caso | Ciclos | Tiempo a 50 MHz |
+|---|---:|---:|
+| Filtro activo | 1 (`REPOSO`) + 3 × (5 + 1) + 1 (`SALIDA`) = 20 | 0,4 µs |
+| Bypass | 1 (`REPOSO`) + 1 (`SALIDA`) = 2 | 40 ns |
+| Par estéreo con filtro | 2 × 20 = 40 | 0,8 µs |
+| Disponible por periodo de muestreo a 44,1 kHz | 50 000 000 / 44 100 ≈ 1133 | 22,7 µs |
+
+El núcleo usa cerca del 3,5 % del tiempo disponible. Lo que más tarda en la
+práctica son los accesos del ARM por el puente liviano (escribir `CTRL` y
+`DATA_IN`, consultar `STATUS` y leer `DATA_OUT`), que se miden en la Fase 7.
+
+### 9.5 Ejemplo: dos muestras paso a paso
+
+Para que los números sean fáciles de seguir, este ejemplo usa un filtro
+inventado (no es uno de los del reproductor):
+
+- Etapa 0: `b0 = b1 = 0,5` (16384 en Q3.15) y el resto en 0, es decir
+  `y = 0,5·x + 0,5·x1`, el promedio de la muestra actual y la anterior.
+- Etapas 1 y 2: identidad (`b0 = 1,0`), el mismo relleno que usa el
+  pasa-altos, que solo ocupa una etapa.
+
+Dentro del filtro las muestras valen 256 veces más (24 bits).
+
+**Muestra 1:** el ARM escribe 1000 con el estado en cero.
+
+| Ciclo | Estado | `etapa` | `paso` | Qué hace | `acc` |
+|---:|---|---:|---:|---|---:|
+| 0 | `REPOSO` | — | — | `x = 1000 · 256 = 256 000`; `acc ← residuo = 0` | 0 |
+| 1 | `MAC` | 0 | 0 | `acc += b0 · x = 16384 · 256 000` | 4 194 304 000 |
+| 2 | `MAC` | 0 | 1 | `acc += b1 · x1 = 16384 · 0` | 4 194 304 000 |
+| 3–5 | `MAC` | 0 | 2–4 | suman o restan 0 | 4 194 304 000 |
+| 6 | `CIERRE_ETAPA` | 0 | — | `y = 4 194 304 000 / 32768 = 128 000`, residuo 0; guarda `x1 = 256 000`, `y1 = 128 000`; `x ← 128 000` | — |
+| 7–12 | `MAC`, `CIERRE_ETAPA` | 1 | 0–4 | identidad: `y = 128 000` | — |
+| 13–18 | `MAC`, `CIERRE_ETAPA` | 2 | 0–4 | identidad: `y = 128 000` | — |
+| 19 | `SALIDA` | — | — | `DATA_OUT = (128 000 + 128) >>> 8 = 500`; `LISTO ← 1` | — |
+
+**Muestra 2:** el ARM escribe 2000. Ahora `x1` de la etapa 0 guarda 256 000.
+
+| Ciclo | Estado | `paso` | Qué hace | `acc` |
+|---:|---|---:|---|---:|
+| 1 | `MAC` | 0 | `acc += 16384 · 512 000` | 8 388 608 000 |
+| 2 | `MAC` | 1 | `acc += 16384 · 256 000` (la muestra anterior) | 12 582 912 000 |
+| 3–5 | `MAC` | 2–4 | suman o restan 0 | 12 582 912 000 |
+| 6 | `CIERRE_ETAPA` | — | `y = 384 000`; guarda `x2 = 256 000`, `x1 = 512 000` | — |
+| 19 | `SALIDA` | — | `DATA_OUT = 384 000 / 256 = 1500` | — |
+
+La salida es (2000 + 1000) / 2 = 1500: `CIERRE_ETAPA` guardó la muestra
+anterior y la MAC la usó en el paso 1 de la muestra siguiente.
+
+Con los filtros reales la FSM recorre los mismos 20 ciclos. Cambian los
+valores: los pasos 3 y 4 (`a1` y `a2`) también restan algo, y como la
+división entre 32768 casi nunca es exacta, el residuo no es 0 y se suma al
+empezar la misma etapa en la muestra siguiente (realimentación del error de
+redondeo, sección 4 de [modelo-punto-fijo.md](modelo-punto-fijo.md)).
+
+---
+
+## 10. Diagramas de tiempo
+
+Convenciones de los tres diagramas:
+
+- El ciclo 0 es el ciclo en que el ARM pone `avs_write = 1`; la escritura
+  toma efecto en el flanco al final de ese ciclo, así que sus efectos se ven
+  desde el ciclo 1.
+- Las lecturas tienen latencia de 1 ciclo: el dato aparece en `avs_readdata`
+  el ciclo siguiente a `avs_read = 1`.
+- El ARM real no escribe ni lee en ciclos seguidos (cada acceso por el puente
+  liviano tarda varios ciclos); aquí se dibujan juntos para que el diagrama
+  sea corto. El comportamiento del módulo es el mismo.
+
+Las fuentes de los diagramas están en `img/*.json` (formato WaveDrom). Para
+modificarlos se pega el `.json` en el editor de WaveDrom
+(<https://wavedrom.com/editor.html>) y se exporta de nuevo el `.svg` con el
+mismo nombre.
+
+### 10.1 Procesamiento de una muestra con el filtro activo
+
+![Procesamiento de una muestra](img/tiempo-procesamiento.svg)
+
+- En el ciclo 0 el ARM escribe la muestra en `DATA_IN`. En el flanco de ese
+  ciclo `OCUPADO` sube y `LISTO` baja.
+- La FSM hace 5 ciclos de `MAC` y 1 de `CIERRE` por etapa (ciclos 1 a 18; del
+  8 al 16 se omiten porque repiten el patrón).
+- En el ciclo 19 (`SALIDA`) se escribe `DATA_OUT`; desde el ciclo 20
+  `LISTO = 1` y `OCUPADO = 0`.
+- El ARM lee `STATUS` con `LISTO = 1` y después `DATA_OUT` con el resultado.
+
+### 10.2 Carga de un coeficiente
+
+![Carga de un coeficiente](img/tiempo-carga-coeficiente.svg)
+
+- El ARM escribe 6 en `COEF_IDX` y luego `0xFFFF1650` en `COEF_DATA`
+  (el ejemplo de la sección 5.4).
+- En el flanco de la escritura de `COEF_DATA`, `coef[6]` toma los bits 17:0
+  (`0x31650`) y, a la vez, el estado de los dos canales y `SATURO` se borran.
+- La lectura de `COEF_DATA` devuelve el coeficiente extendido en signo.
+- `OCUPADO` está en 0 todo el tiempo: los coeficientes solo se cargan con el
+  núcleo en reposo (sección 7).
+
+### 10.3 Procesamiento de una muestra en bypass
+
+![Procesamiento en bypass](img/tiempo-bypass.svg)
+
+- Con `CTRL.EN = 0`, la FSM pasa de `REPOSO` directo a `SALIDA`.
+- `LISTO` vuelve a 1 en el ciclo 2 y `DATA_OUT` es igual a la muestra de
+  entrada.
+- El estado del filtro (`x1`, `x2`, `y1`, `y2`, `residuo`) no cambia.
+
+---

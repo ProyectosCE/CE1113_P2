@@ -195,9 +195,10 @@ completa; el procesamiento todavía deja pasar la muestra sin cambios. **Los tre
 reproductor se implementan en este módulo** (ninguno en software): pasa-altos, pasa-banda y
 ecualizador de 3 bandas, como una cascada de 3 biquads (filtros IIR de segundo orden) con una MAC
 secuencial. El filtro activo depende de los coeficientes que carga el software. El diseño de los
-filtros y el modelo de referencia en punto fijo están en [`dsp/README.md`](dsp/README.md). El núcleo se escribe en el mismo archivo `dsp_filter.sv`; el mapa de
-registros se revisará en el diseño del módulo (por ejemplo, los coeficientes pasan a Q3.15 de
-18 bits).
+filtros y el modelo de referencia en punto fijo están en [`dsp/README.md`](dsp/README.md). El núcleo se escribe en el mismo archivo `dsp_filter.sv`. La
+especificación del módulo (registros nuevos, ruta de datos, FSM y diagramas de tiempo) está en
+[`dsp/especificacion-modulo.md`](dsp/especificacion-modulo.md); la tabla de abajo es la del
+esqueleto y se actualiza en la Fase 4, junto con el RTL.
 
 | Offset | Registro | Acceso | Contenido |
 |---|---|---|---|
