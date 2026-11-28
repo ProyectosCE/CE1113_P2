@@ -1,4 +1,4 @@
-/* Interfaz de usuario: 7 segmentos, LEDs y consola. (Pantalla VGA/LCD: pendiente.) */
+/* Interfaz de usuario: 7 segmentos, LEDs, consola y pantalla VGA (pantalla.c). */
 #ifndef UI_H
 #define UI_H
 

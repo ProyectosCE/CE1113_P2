@@ -44,6 +44,7 @@ sw/
 | `audio` | Audio Core por interrupción (GIC ID 72) con cola de 2048 tramas; si la cola se vacía manda silencio | Listo |
 | `hex` | `hex_ctrl_0` | Listo |
 | `dsp` | `dsp_filter_0`: habilitar, coeficientes, procesar una muestra | Listo (el hardware es aún paso directo) |
+| `vga` | `vga_texto_0`: celdas de 80x30 con copia en memoria (solo escribe lo que cambia), texto UTF-8/Latin-1 | Listo |
 | `sdmmc` | Controlador SD/MMC del HPS: inicialización (CMD0/8, ACMD41, CMD2/3/7, ACMD6) y lectura de sectores por sondeo; bus de 4 bits con respaldo a 1 bit | Listo (solo lectura) |
 
 ### Reproductor
@@ -53,7 +54,8 @@ sw/
 | `player` | Estados, botones, abre el WAV de la canción actual y entrega sus muestras ya remuestreadas a 44.1 kHz (`player_muestra`); avanza solo al terminar | Listo |
 | `filtros` | Selección con SW[1:0] y procesamiento por muestra | Bypass y filtro en hardware conectados; filtros de software **pendientes** |
 | `volumen` | Factor de ganancia a partir del ADC | Básico (lineal); pendiente curva logarítmica |
-| `ui` | HEX (MM:SS, canción), LEDs (filtro y estado), consola | Listo; pendiente pantalla externa |
+| `ui` | HEX (MM:SS, canción), LEDs (filtro y estado), consola; llama a `pantalla` | Listo |
+| `pantalla` | VGA: título, artista, álbum, archivo y formato; canción N de M; estado; tiempo con barra; volumen; filtro activo; lista de canciones | Listo |
 | `fat` | FAT32 de la SD (con MBR o sin particiones): lista los `.wav` del directorio raíz con nombre largo, abre, lee y busca | Listo (solo raíz, nombres ASCII) |
 | `wav` | Cabecera WAV (PCM 16 bits, mono/estéreo) y metadatos `LIST/INFO` (título, artista, álbum) antes o después de `data` | Listo |
 | `remuestreo` | Cualquier frecuencia de 4 a 48 kHz → 44.1 kHz, interpolación lineal | Listo |

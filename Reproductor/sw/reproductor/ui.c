@@ -6,6 +6,7 @@
 #include "hps.h"
 #include "jtag_uart.h"
 #include "leds.h"
+#include "pantalla.h"
 #include "player.h"
 #include "volumen.h"
 
@@ -14,6 +15,7 @@
  * HEX3-0 = MM:SS, HEX5-4 = numero de cancion (1..N).
  * Consola: datos de la cancion al cambiar de cancion, y una linea en cada cambio de estado,
  * filtro o volumen (pasos de 10 %).
+ * VGA (pantalla.c): metadatos, cancion N de M, estado, tiempo, volumen, filtro y lista.
  */
 
 static uint32_t cambios_vistos = 0xFFFFFFFFu;
@@ -73,6 +75,7 @@ void ui_iniciar(void)
     uart_puts("CPU: ");
     uart_putu(hps_mhz());
     uart_puts(" MHz\r\n");
+    uart_puts(pantalla_iniciar() == 0 ? "VGA: ok\r\n" : "VGA: no responde\r\n");
 
     hex_encender(true, true);
 }
@@ -105,5 +108,5 @@ void ui_actualizar(void)
         uart_putu(vol);
         uart_puts(" %\r\n");
     }
-    /* TODO: metadatos en pantalla externa */
+    pantalla_actualizar();
 }

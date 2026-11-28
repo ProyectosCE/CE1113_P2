@@ -222,6 +222,22 @@
          type = "String";
       }
    }
+   element vga_texto_0
+   {
+      datum _sortIndex
+      {
+         value = "12";
+         type = "int";
+      }
+   }
+   element vga_texto_0.s0
+   {
+      datum baseAddress
+      {
+         value = "32768";
+         type = "String";
+      }
+   }
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
@@ -278,6 +294,7 @@
    internal="switches.external_connection"
    type="conduit"
    dir="end" />
+ <interface name="vga" internal="vga_texto_0.vga" type="conduit" dir="end" />
  <module name="adc" kind="altera_up_avalon_adc" version="18.0" enabled="1">
   <parameter name="AUTO_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
@@ -929,6 +946,7 @@
   <parameter name="simDrivenValue" value="0" />
   <parameter name="width" value="10" />
  </module>
+ <module name="vga_texto_0" kind="vga_texto" version="1.0" enabled="1" />
  <connection
    kind="avalon"
    version="25.1"
@@ -987,6 +1005,15 @@
    kind="avalon"
    version="25.1"
    start="hps_0.h2f_lw_axi_master"
+   end="vga_texto_0.s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x8000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="25.1"
+   start="hps_0.h2f_lw_axi_master"
    end="leds.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
@@ -1019,6 +1046,7 @@
  <connection kind="clock" version="25.1" start="clk_0.clk" end="adc.clk" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="hex_ctrl.clock" />
  <connection kind="clock" version="25.1" start="clk_0.clk" end="dsp_filter.clock" />
+ <connection kind="clock" version="25.1" start="clk_0.clk" end="vga_texto_0.clock" />
  <connection
    kind="clock"
    version="25.1"
@@ -1073,6 +1101,11 @@
    version="25.1"
    start="clk_0.clk_reset"
    end="dsp_filter.reset" />
+ <connection
+   kind="reset"
+   version="25.1"
+   start="clk_0.clk_reset"
+   end="vga_texto_0.reset" />
  <connection
    kind="reset"
    version="25.1"

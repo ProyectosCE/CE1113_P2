@@ -29,6 +29,7 @@
 #define AUDIO_BASE              (LW_BASE + 0x3040u)
 #define ADC_BASE                (LW_BASE + 0x4000u)
 #define DSP_BASE                (LW_BASE + 0x5000u)     /* dsp_filter_0 (propio) */
+#define VGA_BASE                (LW_BASE + 0x8000u)     /* vga_texto_0 (propio), 16 KB */
 
 /* ---- Interrupciones (f2h_irq0[n] -> GIC ID 72 + n) ---- */
 #define IRQ_FPGA_BASE           72u

@@ -101,6 +101,16 @@ set *(unsigned int*)0xFF200000 = 0x3FF    # enciende LEDR[9:0]
 | `audio` | `0xFF20_3040` | 0 -> 72 |
 | `adc` | `0xFF20_4000` | — |
 | `dsp_filter` (propio) | `0xFF20_5000` | — |
+| `vga_texto` (propio, 16 KB) | `0xFF20_8000` | — |
+
+## VGA
+
+`vga_texto` (propio, [`ip/vga_texto/`](ip/vga_texto/)) genera 640x480 a ~60 Hz con un reloj de
+pixel de 25 MHz (`clk` de 50 MHz / 2) y muestra **80 x 30 caracteres** de 8x16 con 16 colores. El
+software solo escribe celdas (carácter + colores); la fuente está en una ROM del FPGA
+(`vga_fuente.sv`, generada con `gen_fuente.py`) e incluye las letras del español y símbolos de
+reproductor. Registros en el encabezado de `vga_texto.sv`; prueba en
+[`tests/hw/tb_vga_texto.sv`](../tests/hw/README.md). Usa unos 10 bloques M10K (de 397).
 
 ## Audio
 
