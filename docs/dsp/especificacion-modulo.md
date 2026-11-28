@@ -574,18 +574,3 @@ mismo nombre.
 - El estado del filtro (`x1`, `x2`, `y1`, `y2`, `residuo`) no cambia.
 
 ---
-
-## 11. Cambios pendientes para la Fase 4
-
-Al implementar estos registros, `CONTRIBUTING.md` obliga a actualizar en el
-mismo cambio:
-
-| Archivo | Cambio |
-|---|---|
-| `Reproductor/ip/dsp_filter/dsp_filter.sv` | encabezado con el mapa de registros nuevo; `VERSION = 0x02`; `NUM_COEF` fijo en 15 |
-| `tests/hw/tb_dsp_filter.sv` | quitar `#(.NUM_COEF(16))`; probar contra los vectores de `dsp/vectors/` |
-| `Reproductor/sw/drivers/dsp.c` y `dsp.h` | coeficientes `int32_t` Q3.15, comprobación de `VERSION`, canal en `CTRL` |
-| `docs/README.md` (sección 3.9) | tabla de registros nueva |
-
-El `_hw.tcl` no debería cambiar, porque la interfaz Avalon-MM es la misma; se
-confirma en la Fase 4.
