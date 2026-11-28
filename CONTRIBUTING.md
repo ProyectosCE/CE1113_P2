@@ -112,6 +112,13 @@ Cada push y cada PR hacia `develop`/`main` corre `.github/workflows/ci.yml`:
 | Lint SystemVerilog | `verilator --lint-only -Wall` sobre `Reproductor/ip/*/*.sv` | `verilator --lint-only -Wall -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM Reproductor/ip/hex_ctrl/hex_ctrl.sv` (`sudo apt install verilator`) |
 | Compilar firmware | `make -C Reproductor sw` sin warnings; guarda el ELF y el `.map` como artefacto | `make sw` |
 
+Aparte, `.github/workflows/dsp-modelo.yml` prueba el modelo DSP en Python. Solo corre cuando
+cambia algo en `dsp/`, `scripts/dsp/` o el propio workflow:
+
+| Job | Qué valida | Cómo probarlo antes de subir |
+|---|---|---|
+| Pruebas del modelo DSP | `pytest` en `dsp/` con Python 3.11 y 3.14: diseño de los filtros, modelo en punto fijo bit-exacto y vectores de prueba del testbench | `source scripts/dsp/setup-env.sh` y `cd dsp && pytest` |
+
 Un PR no se integra con el CI en rojo. El título del PR sigue el mismo formato `[TAG] Descripción`.
 
 ## 5. Antes de pedir revisión: lista corta
