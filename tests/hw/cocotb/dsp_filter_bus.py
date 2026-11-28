@@ -4,6 +4,8 @@ Las señales del bus cambian en el flanco de bajada y el RTL las captura en el d
 en tests/hw/tb_dsp_filter.sv, para que el testbench y el diseño nunca cambien en el mismo instante.
 """
 
+from pathlib import Path
+
 from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, ReadOnly, RisingEdge
 
@@ -22,11 +24,20 @@ NUM_COEF = 15
 PERIODO_NS = 20     # 50 MHz, el reloj del puente lightweight
 ESPERA_MAX = 100    # ciclos máximos esperando LISTO
 
+RAIZ = Path(__file__).resolve().parents[3]
+VECTORES = RAIZ / "dsp" / "vectors"     # vectores del modelo (dsp/vectors/README.md)
+
 
 def con_signo(valor, bits=32):
     """Interpreta un entero sin signo de `bits` bits como número con signo."""
     valor &= (1 << bits) - 1
     return valor - (1 << bits) if valor >> (bits - 1) else valor
+
+
+def leer_hex(ruta, bits):
+    """Lee un archivo .hex de los vectores (un valor por línea) como enteros con signo."""
+    with open(ruta) as f:
+        return [con_signo(int(linea, 16), bits) for linea in f if linea.strip()]
 
 
 class DspFilter:
