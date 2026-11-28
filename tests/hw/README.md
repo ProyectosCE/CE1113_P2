@@ -4,6 +4,8 @@ El enunciado exige verificar el hardware propio de forma aislada antes de integr
 documentar los casos de prueba y sus resultados. Estos testbenches son autoverificables: cada
 uno compara las salidas contra lo esperado con `assert` (cada falla sale como `** Error` de Questa)
 e imprime `RESULTADO <módulo>: OK` o el número de fallas. Módulos y testbenches en SystemVerilog.
+`dsp_filter` tiene además una verificación completa en Python con cocotb, que lo compara contra
+el modelo bit-exacto (sección [`dsp_filter` — cocotb](#dsp_filter--cocotb-testshwcocotb)).
 
 ```bash
 tests/hw/sim.sh todos          # simula hex_ctrl y dsp_filter en Questa (consola)
@@ -15,7 +17,7 @@ El script carga `scripts/general/env.sh` (Questa y la licencia SALT) y compila d
 
 ## Entorno Docker: Verilator y cocotb
 
-Además de Questa, el repo trae una imagen de Docker con Verilator 5.040, cocotb 2.0.1 y las
+Además de Questa, el repo trae una imagen de Docker con Verilator, cocotb 2.0.1 y las
 bibliotecas del modelo DSP (`dsp/requirements.txt`), para que todo el grupo haga el lint y las
 simulaciones con las mismas versiones sin instalarlas. Se define en `scripts/hw/Dockerfile` y se
 usa con `scripts/hw/docker.sh`:
@@ -32,9 +34,10 @@ scripts/hw/docker.sh <comando ...>     # cualquier comando, p. ej. verilator --v
 - El repositorio se monta en `/repo` con el usuario actual: lo que se genere dentro del contenedor
   queda a nombre de uno, no de root. El comando corre en la misma carpeta desde la que se llamó.
 - Requiere Docker sin `sudo` (usuario en el grupo `docker`).
-- Verilator se compila desde el código fuente porque cocotb 2 necesita la versión 5.036 o más
-  nueva; el CI usa la de `apt` de Ubuntu 24.04, que es anterior. Si un aviso aparece en una de las
-  dos y no en la otra, se corrige el código para que pase en ambas.
+- La imagen trae dos versiones de Verilator. `docker.sh lint` usa la de `apt` de Ubuntu 24.04
+  (5.020), el mismo paquete que el CI, así que da los mismos avisos. cocotb usa la 5.040, compilada
+  desde el código fuente, porque necesita la 5.036 o más nueva; es la que queda como `verilator`
+  dentro del contenedor.
 
 ## `hex_ctrl` — `tb_hex_ctrl.sv`
 
@@ -68,6 +71,78 @@ del archivo.
 | 10 | SATURO | Con `b0 ≈ 4`, 32767 satura la etapa 0: SATURO = 1 y la salida es 32767; escribir COEF_DATA lo borra |
 | 11 | DATA_IN con OCUPADO = 1 | La segunda de dos escrituras seguidas se descarta |
 | 12 | Lectura de CTRL | EN y CANAL se leen de vuelta; LIMPIAR se lee como 0 |
+
+## `dsp_filter` — cocotb (`tests/hw/cocotb/`)
+
+Verificación completa del filtro contra el modelo bit-exacto (`dsp/model/fixed_model.py`), en
+Verilator 5.040 con cocotb 2.0.1 dentro del entorno Docker. El testbench de Questa de arriba queda
+como prueba de humo con valores calculados a mano.
+
+```bash
+scripts/hw/docker.sh pytest tests/hw/cocotb             # resumen
+scripts/hw/docker.sh pytest -s tests/hw/cocotb          # con la salida completa de cocotb
+COCOTB_TEST_FILTER=tiempos scripts/hw/docker.sh pytest -s tests/hw/cocotb   # solo esas pruebas
+COCOTB_RANDOM_SEED=<semilla> scripts/hw/docker.sh pytest -s tests/hw/cocotb # repite una corrida
+ONDAS=1 scripts/hw/docker.sh pytest tests/hw/cocotb     # graba sim_build/ondas/dump.fst
+```
+
+| Archivo | Contenido |
+|---|---|
+| `test_dsp_filter.py` | Punto de entrada de pytest: compila el RTL con Verilator y corre las pruebas de cocotb |
+| `dsp_filter_bus.py` | Acceso al módulo como lo hace el ARM: reloj, reset, lectura y escritura por Avalon, carga de coeficientes y `procesar()` (con la cuenta de ciclos) |
+| `dsp_filter_tests.py` | Las pruebas de cocotb |
+
+### Casos
+
+| Grupo | Prueba | Se verifica |
+|---|---|---|
+| Humo | `info_e_identidad` | INFO = `0xD5F1020F`; con los coeficientes de reset la salida es igual a la entrada |
+| Vectores (12) | `vectores/fs=…/modo=…` | Los 12 juegos de `dsp/vectors/` (8, 16 y 44,1 kHz; pasa-altos, pasa-banda, ecualizador y bypass): 3700 muestras cada uno, iguales a `expected.hex` |
+| Modelo (4) | `estereo_aleatorio/filtro=…` | Ruido estéreo intercalado a 44,1 kHz (señales distintas en cada canal, tramos a escala completa), 1500 pares por filtro, comparado muestra por muestra con el modelo; STATUS.SATURO igual al modelo |
+| | `cambio_de_filtro` | Secuencia estéreo continua: pasa-altos → pasa-banda → bypass sin recargar → pasa-banda con el estado que tenía → LIMPIAR → ecualizador, comparada con el modelo y con SATURO revisado en cada tramo |
+| Tiempos y protocolo (6) | `tiempos_filtro` | Sección 10.1 de la especificación: OCUPADO en los ciclos 1-19, FSM con 5 ciclos de MAC y 1 de CIERRE por etapa y SALIDA en el ciclo 19, LISTO y DATA_OUT desde el ciclo 20 |
+| | `tiempos_bypass` | Sección 10.3: con EN = 0, SALIDA en el ciclo 1 y LISTO desde el ciclo 2 |
+| | `bypass_conserva_estado` | Una muestra en bypass no cambia `x1`, `x2`, `y1`, `y2` ni el residuo de ningún canal |
+| | `carga_coeficiente` | Sección 10.2: escribir COEF_DATA borra el estado de los dos canales y SATURO en el mismo flanco, con OCUPADO en 0 |
+| | `protocolo_status` | STATUS leído justo después de escribir DATA_IN da OCUPADO = 1 (nunca el LISTO de la muestra anterior); LISTO y DATA_OUT se mantienen hasta la siguiente muestra |
+| | `descarte_data_in` | Una escritura de DATA_IN con OCUPADO = 1 se ignora: LISTO llega en el ciclo 20 de la primera muestra con su resultado |
+
+### Resultados
+
+Corrida del 2026-11-28: **23 de 23 pruebas pasan** (47 s de simulación, 54 s con la compilación).
+Son 44 400 muestras de los vectores y 12 400 de ruido estéreo, todas iguales al modelo bit-exacto,
+más las pruebas de tiempos ciclo a ciclo.
+
+Para comprobar que las pruebas detectan errores se rompió el RTL a propósito (una rotura a la vez,
+deshecha después):
+
+| Rotura en `dsp_filter.sv` | Pruebas que fallaron |
+|---|---|
+| Salida invertida (`data_out <= ~salida`) | `info_e_identidad` (la única prueba en ese momento) |
+| `a1·y1` y `a2·y2` se suman en vez de restarse | Los 9 vectores de pasa-altos, pasa-banda y ecualizador; los de bypass pasan |
+| Los dos canales comparten el estado (`canal_act <= 1'b0`) | `estereo_aleatorio` y `cambio_de_filtro`; los vectores (solo canal 0) pasan |
+| Escribir COEF_DATA no borra el estado | `carga_coeficiente` |
+
+La segunda rotura no la detecta el testbench de Questa, porque en sus filtros de prueba `a1` y
+`a2` valen 0; la tercera y la cuarta tampoco las detectan los vectores.
+
+### Formas de onda
+
+Capturas de GTKWave de `sim_build/ondas/dump.fst` (pruebas `tiempos_filtro` y `tiempos_bypass`).
+`estado`: 0 = REPOSO, 1 = MAC, 2 = CIERRE_ETAPA, 3 = SALIDA. Coinciden con los diagramas de las
+secciones 10.1 y 10.3 de la [especificación](../../docs/dsp/especificacion-modulo.md).
+
+**Una muestra con el filtro** (identidad, 1000 → 1000): la escritura de DATA_IN se acepta en el
+flanco de 120 ns; OCUPADO dura 19 ciclos, en los que `etapa` va de 0 a 2 y `paso` de 0 a 4 en cada
+una, con un ciclo de CIERRE_ETAPA entre etapas y SALIDA al final; LISTO sube y DATA_OUT toma el
+resultado 20 ciclos (400 ns) después.
+
+![Procesamiento con el filtro](../../docs/dsp/img/ondas-procesamiento.png)
+
+**Una muestra en bypass** (1234 → 1234): la escritura se acepta en el flanco de 640 ns, la FSM pasa
+directo a SALIDA y LISTO sube con DATA_OUT = 1234 dos ciclos (40 ns) después.
+
+![Procesamiento en bypass](../../docs/dsp/img/ondas-bypass.png)
 
 ## Resultados
 
