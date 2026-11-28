@@ -113,28 +113,151 @@ module dsp_filter (
         end
     end
 
-    // ---------------- Procesamiento (paso directo) ----------------
+    // ---------------- Nucleo: estado del filtro ----------------
+    // Historiales y residuo de cada etapa, separados por canal: [canal][etapa]
+    logic [1:0][2:0][23:0] x1, x2, y1, y2;      // Q1.23
+    logic [1:0][2:0][14:0] residuo;             // error de redondeo de la ultima muestra
+
+    typedef enum logic [1:0] {
+        REPOSO       = 2'd0,
+        MAC          = 2'd1,
+        CIERRE_ETAPA = 2'd2,
+        SALIDA       = 2'd3
+    } estado_t;
+
+    estado_t            estado;
+    logic [1:0]         etapa;        // etapa en proceso (0 .. 2)
+    logic [2:0]         paso;         // producto en proceso: 0 b0*x, 1 b1*x1, 2 b2*x2, 3 a1*y1, 4 a2*y2
+    logic               canal_act;    // canal de la muestra en proceso
+    logic signed [23:0] x;            // entrada de la etapa en proceso (Q1.23)
+    logic signed [47:0] acc;          // acumulador de la MAC
+
+    // Residuo de 15 bits extendido en signo al ancho del acumulador
+    function automatic logic signed [47:0] extender(input logic [14:0] r);
+        return $signed({{33{r[14]}}, r});
+    endfunction
+
+    // ---------------- Nucleo: ruta de datos (combinacional) ----------------
+    logic signed [23:0] operando;     // operando del multiplicador segun paso
+    logic        [3:0]  idx_mac;      // coeficiente de la MAC: etapa*5 + paso
+    logic signed [17:0] coef_mac;
+    logic signed [41:0] producto;     // 24 x 18 bits
+    logic signed [47:0] producto_ext;
+    logic signed [47:0] acc_red;      // acc + 2^14 (redondeo al mas cercano)
+    logic signed [32:0] q;            // acc redondeado a 15 bits de fraccion, sin saturar
+    logic               satura;       // q no cabe en 24 bits
+    logic signed [23:0] y;            // salida de la etapa: q saturado a 24 bits
+    logic        [24:0] x_red;        // x + 2^7 en 25 bits (redondeo de 24 a 16 bits)
+    logic        [16:0] r_sal;        // x redondeado, sin saturar
+    logic signed [15:0] salida;       // resultado final saturado a 16 bits
+
+    always_comb begin
+        case (paso)
+            3'd0:    operando = x;
+            3'd1:    operando = x1[canal_act][etapa];
+            3'd2:    operando = x2[canal_act][etapa];
+            3'd3:    operando = y1[canal_act][etapa];
+            default: operando = y2[canal_act][etapa];
+        endcase
+    end
+
+    assign idx_mac      = {2'b00, etapa} * 4'd5 + {1'b0, paso};
+    assign coef_mac     = coef[idx_mac];
+    assign producto     = 42'(operando) * 42'(coef_mac);   // el producto completo cabe en 42 bits
+    assign producto_ext = $signed({{6{producto[41]}}, producto});
+
+    // Redondeo: q = (acc + 2^14) >>> 15. El residuo nuevo es acc[14:0] (lo que se descarta,
+    // visto como numero con signo de 15 bits), igual que acc - q*2^15 en el modelo.
+    assign acc_red = acc + 48'sd16384;
+    assign q       = acc_red[47:15];
+    assign satura  = (q[32:23] != {10{q[23]}});
+    assign y       = !satura ? q[23:0] : (q[32] ? 24'sh800000 : 24'sh7FFFFF);
+
+    // Salida: (x + 2^7) >>> 8 saturado a 16 bits. Con x = muestra*256 (bypass) da la muestra exacta
+    assign x_red  = {x[23], x} + 25'd128;
+    assign r_sal  = x_red[24:8];
+    assign salida = (r_sal[16] == r_sal[15]) ? r_sal[15:0] : (r_sal[16] ? 16'sh8000 : 16'sh7FFF);
+
+    // ---------------- Nucleo: FSM y registros de control ----------------
+    // REPOSO -> MAC (5 ciclos) -> CIERRE_ETAPA, tres veces, -> SALIDA: 20 ciclos por muestra.
+    // En bypass (EN = 0): REPOSO -> SALIDA, 2 ciclos, sin tocar el estado.
     // En el mismo flanco en que se acepta DATA_IN, LISTO baja y OCUPADO sube (asi una lectura
-    // de STATUS justo despues de la escritura nunca ve el LISTO de la muestra anterior). Al ciclo
-    // siguiente DATA_OUT tiene el resultado y LISTO sube.
+    // de STATUS justo despues de la escritura nunca ve el LISTO de la muestra anterior).
     always_ff @(posedge clk) begin
         if (reset) begin
-            data_out <= '0;
-            listo    <= 1'b0;
-            ocupado  <= 1'b0;
-            saturo   <= 1'b0;
+            estado    <= REPOSO;
+            etapa     <= '0;
+            paso      <= '0;
+            canal_act <= 1'b0;
+            x         <= '0;
+            acc       <= '0;
+            data_out  <= '0;
+            listo     <= 1'b0;
+            ocupado   <= 1'b0;
+            saturo    <= 1'b0;
         end else begin
             if (borrar_estado)
                 saturo <= 1'b0;
+            else if ((estado == CIERRE_ETAPA) && satura)
+                saturo <= 1'b1;
 
-            if (acepta_dato) begin
-                listo   <= 1'b0;
-                ocupado <= 1'b1;
-            end else if (ocupado) begin
-                data_out <= data_in;
-                ocupado  <= 1'b0;
-                listo    <= 1'b1;
-            end
+            case (estado)
+                REPOSO: begin
+                    if (acepta_dato) begin
+                        listo     <= 1'b0;
+                        ocupado   <= 1'b1;
+                        canal_act <= canal;
+                        x         <= {avs_writedata[15:0], 8'd0};   // muestra * 256 (Q1.23)
+                        etapa     <= '0;
+                        paso      <= '0;
+                        acc       <= extender(residuo[canal][0]);
+                        estado    <= en ? MAC : SALIDA;
+                    end
+                end
+                MAC: begin
+                    acc <= (paso >= 3'd3) ? acc - producto_ext : acc + producto_ext;
+                    if (paso == 3'd4)
+                        estado <= CIERRE_ETAPA;
+                    else
+                        paso <= paso + 3'd1;
+                end
+                CIERRE_ETAPA: begin
+                    x    <= y;                 // entrada de la siguiente etapa
+                    paso <= '0;
+                    if (etapa == 2'd2)
+                        estado <= SALIDA;
+                    else begin
+                        etapa  <= etapa + 2'd1;
+                        acc    <= extender(residuo[canal_act][etapa + 2'd1]);
+                        estado <= MAC;
+                    end
+                end
+                SALIDA: begin
+                    data_out <= salida;
+                    listo    <= 1'b1;
+                    ocupado  <= 1'b0;
+                    estado   <= REPOSO;
+                end
+                default: estado <= REPOSO;
+            endcase
+        end
+    end
+
+    // Estado del filtro: se borra con el reset, LIMPIAR o COEF_DATA, y se actualiza al cerrar
+    // cada etapa (se desplazan los historiales y se guarda el residuo, aunque la salida sature)
+    always_ff @(posedge clk) begin
+        if (reset || borrar_estado) begin
+            x1      <= '0;
+            x2      <= '0;
+            y1      <= '0;
+            y2      <= '0;
+            residuo <= '0;
+        end else if (estado == CIERRE_ETAPA) begin
+            x2[canal_act][etapa]      <= x1[canal_act][etapa];
+            x1[canal_act][etapa]      <= x;
+            y2[canal_act][etapa]      <= y1[canal_act][etapa];
+            y1[canal_act][etapa]      <= y;
+            residuo[canal_act][etapa] <= acc[14:0];
         end
     end
 
