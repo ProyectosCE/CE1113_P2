@@ -1,6 +1,6 @@
 # Pull Request
 
-<!-- El título del PR debe seguir Conventional Commits, por ejemplo: feat(dsp): agregar núcleo del filtro FIR -->
+<!-- El título del PR sigue el mismo formato que los commits: [TAG] Descripción, por ejemplo: [ADD] Agrega el núcleo del filtro biquad. Tags y reglas: docs/development/commit-convention.md. El CI lo valida en los PR hacia develop y main. -->
 
 ## Descripción
 
@@ -60,7 +60,7 @@ Closes #
 
 ## Checklist
 
-- [ ] El PR apunta a la rama correcta (`develop`, salvo integraciones a `main`).
+- [ ] El PR apunta a la rama correcta (`develop`, o su rama padre si es una rama hija; `main` solo para versiones estables).
 - [ ] El PR contiene únicamente cambios relacionados con su objetivo.
 - [ ] No se agregaron archivos generados por Quartus, Questa o la compilación, ni temporales o de caché.
 - [ ] La documentación fue actualizada si el cambio lo requiere.
