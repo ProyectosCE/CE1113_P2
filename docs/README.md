@@ -190,9 +190,14 @@ Verificado en simulación (`tests/hw/`, 8 casos) y en la placa (`tests/hex-dsp/`
 ### 3.9 `dsp_filter` — filtro DSP (hardware propio, esqueleto)
 
 El filtro obligatorio en HDL propio, en SystemVerilog (`Reproductor/ip/dsp_filter/`). La interfaz de registros ya está
-completa; el procesamiento todavía deja pasar la muestra sin cambios. El filtro real (por ejemplo
-un FIR con multiplicador-acumulador) se escribe en el bloque `PROCESAMIENTO` de `dsp_filter.sv` sin
-cambiar el mapa de registros.
+completa; el procesamiento todavía deja pasar la muestra sin cambios. **Los tres filtros del
+reproductor se implementan en este módulo** (ninguno en software): pasa-altos, pasa-banda y
+ecualizador de 3 bandas, como una cascada de 3 biquads (filtros IIR de segundo orden) con una MAC
+secuencial. El filtro activo depende de los coeficientes que carga el software. El diseño de los
+filtros y el modelo de referencia en punto fijo están en la rama `feature/procesamiento-dsp`
+(`dsp/` y `docs/dsp/`). El núcleo se escribe en el mismo archivo `dsp_filter.sv`; el mapa de
+registros se revisará en el diseño del módulo (por ejemplo, los coeficientes pasan a Q3.15 de
+18 bits).
 
 | Offset | Registro | Acceso | Contenido |
 |---|---|---|---|
@@ -251,7 +256,7 @@ Resumen de los módulos y el requisito que cubre cada uno:
 | `sdmmc` + `fat` | Lectura de la microSD (controlador del HPS) y FAT32 | SD mediante el HPS; ≥10 canciones | Pendiente |
 | `wav` | Formato (PCM 16 bits, 8/16/44.1 kHz) y metadatos `LIST/INFO` | Formatos; metadatos | Pendiente |
 | `remuestreo` | 8/16 kHz → 44.1 kHz | Formatos (codec fijo a 44.1 kHz) | Pendiente |
-| `filtros` + `dsp` | 4 posiciones con SW[1:0]: bypass, hardware, 2 de software | Filtros; latencia < 100 ms | Selección y hardware conectados; faltan los filtros |
+| `filtros` + `dsp` | 4 posiciones con SW[1:0]: bypass, pasa-altos, pasa-banda y ecualizador, los tres en `dsp_filter` | Filtros; latencia < 100 ms | Selección y hardware conectados; faltan los filtros |
 | `volumen` + `adc` | Ganancia desde el potenciómetro | Control de volumen | Básico |
 | `audio` | FIFO del codec | Reproducción sin cortes | Por sondeo; pendiente por interrupción |
 | `player` | Estados, botones, canción, tiempo | Controles; reproducción continua; cambio < 2 s | Básico |
@@ -297,7 +302,7 @@ directa": el programa bare metal cumple eso.
 | Reproducción continua (siguiente canción al terminar) | `player.c` | Pendiente |
 | Tiempo MM:SS en 7 segmentos (hardware) | `hex_ctrl`, `hex.c` | Hardware listo; falta llevar el tiempo de reproducción |
 | Metadatos, número de canción y filtro en pantalla | Pantalla externa, `ui.c` | Pendiente (después de la base) |
-| ≥3 filtros por switches, uno en HDL propio | `dsp_filter`, `filtros.c` | Interfaz del filtro en hardware lista; faltan los filtros |
+| ≥3 filtros por switches, uno en HDL propio | `dsp_filter`, `filtros.c` | Los tres en hardware: diseño y modelo listos; falta el núcleo en HDL |
 | Cambio de filtro < 100 ms; bypass sin distorsión | `filtros.c` | Pendiente |
 | Volumen con potenciómetro (ADC) | `adc.c`, `volumen.c` | Hardware listo; lógica pendiente |
 | Respuesta a botones < 200 ms; cambio de canción < 2 s | `player.c` | Pendiente |
