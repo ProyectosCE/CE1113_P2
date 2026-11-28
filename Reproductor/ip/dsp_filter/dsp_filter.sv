@@ -127,10 +127,13 @@ module dsp_filter (
 
     estado_t            estado;
     logic [1:0]         etapa;        // etapa en proceso (0 .. 2)
+    logic [1:0]         etapa_sig;    // etapa siguiente (se usa en CIERRE_ETAPA si etapa < 2)
     logic [2:0]         paso;         // producto en proceso: 0 b0*x, 1 b1*x1, 2 b2*x2, 3 a1*y1, 4 a2*y2
     logic               canal_act;    // canal de la muestra en proceso
     logic signed [23:0] x;            // entrada de la etapa en proceso (Q1.23)
     logic signed [47:0] acc;          // acumulador de la MAC
+
+    assign etapa_sig = etapa + 2'd1;
 
     // Residuo de 15 bits extendido en signo al ancho del acumulador
     function automatic logic signed [47:0] extender(input logic [14:0] r);
@@ -227,8 +230,8 @@ module dsp_filter (
                     if (etapa == 2'd2)
                         estado <= SALIDA;
                     else begin
-                        etapa  <= etapa + 2'd1;
-                        acc    <= extender(residuo[canal_act][etapa + 2'd1]);
+                        etapa  <= etapa_sig;
+                        acc    <= extender(residuo[canal_act][etapa_sig]);
                         estado <= MAC;
                     end
                 end
