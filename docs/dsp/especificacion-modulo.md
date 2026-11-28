@@ -62,7 +62,7 @@ señales internas van en minúsculas y son las mismas que tendrá
 |---|---|---|
 | Arquitectura de la MAC | secuencial, un solo multiplicador | una muestra usa 20 de los 1133 ciclos que hay en un periodo de muestreo a 44,1 kHz (50 MHz / 44 100); 15 multiplicadores en paralelo gastarían 15 bloques DSP sin necesidad |
 | Multiplicar y acumular | en el mismo ciclo, sin pipeline | un bloque DSP en modo 27×27 debería cumplir 20 ns; si la Fase 6 muestra que no, se agrega un registro (un ciclo más por producto) |
-| Control | FSM de 4 estados (`REPOSO`, `MAC`, `CIERRE_ETAPA`, `SALIDA`) | ver la sección de la FSM |
+| Control | FSM de 4 estados (`REPOSO`, `MAC`, `CIERRE_ETAPA`, `SALIDA`) | sección 9 |
 | Estado del filtro | registros (flip-flops), separado por etapa y por canal | unos 670 bits; una RAM interna agregaría latencia sin ganancia; separado por etapa refleja el modelo uno a uno |
 | Canal | bit `CTRL.CANAL`, capturado al escribir `DATA_IN` | se mantiene el registro del esqueleto; el tiempo sobra para una escritura extra por muestra |
 | Coeficientes | acceso indirecto con `COEF_IDX` y `COEF_DATA`, sin autoincremento | 15 coeficientes no caben en las 8 direcciones del módulo; cargar un filtro son 30 escrituras, muy por debajo de los 100 ms del requisito |
@@ -420,7 +420,109 @@ que el módulo debería ocupar menos del 5 % de la FPGA.
 
 ---
 
-## 9. Cambios pendientes para la Fase 4
+## 9. Máquina de estados (FSM)
+
+### 9.1 Para qué sirve
+
+La ruta de datos (sección 8) sabe multiplicar, sumar y guardar, pero no sabe
+qué operación toca en cada ciclo. La FSM es el control: guarda en qué paso va
+el cálculo y, en cada flanco de reloj, decide qué hace la ruta de datos y cuál
+es el siguiente estado. Además del estado usa dos contadores, `etapa` (0 a 2)
+y `paso` (0 a 4), y el canal capturado `canal_act`.
+
+### 9.2 Diagrama de estados
+
+```mermaid
+flowchart LR
+    INI(( )) -- "reset" --> REPOSO
+    REPOSO(["REPOSO"]) -- "DATA_IN, EN = 1" --> MAC(["MAC"])
+    MAC -- "paso 0 a 3" --> MAC
+    MAC -- "paso = 4" --> CIERRE(["CIERRE_ETAPA"])
+    CIERRE -- "etapa 0 o 1" --> MAC
+    CIERRE -- "etapa = 2" --> SALIDA(["SALIDA"])
+    REPOSO -. "DATA_IN, EN = 0" .-> SALIDA
+    SALIDA -- "siempre" --> REPOSO
+```
+
+La flecha punteada es el bypass: la muestra no pasa por la MAC.
+
+### 9.3 Estados
+
+Las acciones ocurren en el flanco de reloj al final de cada ciclo en ese
+estado.
+
+| Estado | Ciclos | Acciones | Siguiente estado |
+|---|---:|---|---|
+| `REPOSO` | — | Espera una escritura en `DATA_IN`. Al llegar: `LISTO ← 0`, `OCUPADO ← 1`, `canal_act ← CTRL.CANAL`, `x ← DATA_IN · 256`. Si `EN = 1`: `acc ← residuo[canal_act][0]`, `etapa ← 0`, `paso ← 0` | `MAC` si `EN = 1`; `SALIDA` si `EN = 0`; si no hay escritura, se queda en `REPOSO` |
+| `MAC` | 5 por etapa | `acc ← acc ± coef[etapa·5 + paso] · operando(paso)`; resta si `paso ≥ 3`. `paso ← paso + 1` | `MAC` si `paso < 4`; `CIERRE_ETAPA` si `paso = 4` |
+| `CIERRE_ETAPA` | 1 por etapa | Calcula `y` y el residuo nuevo; en `[canal_act][etapa]`: `x2 ← x1`, `x1 ← x`, `y2 ← y1`, `y1 ← y`, `residuo ← residuo nuevo`. `saturo ← 1` si `y` se saturó. `x ← y`, `paso ← 0`. Si `etapa < 2`: `etapa ← etapa + 1` y `acc ← residuo` de la etapa siguiente | `MAC` si `etapa < 2`; `SALIDA` si `etapa = 2` |
+| `SALIDA` | 1 | `DATA_OUT ← sat16((x + 2^7) >>> 8)`, `LISTO ← 1`, `OCUPADO ← 0` | `REPOSO` |
+
+En bypass, `REPOSO` deja la muestra en `x` (multiplicada por 256) y va directo
+a `SALIDA`. Como `(d · 256 + 2^7) >>> 8 = d` para cualquier muestra `d`,
+`SALIDA` devuelve la muestra exacta sin necesitar un camino aparte ni guardar
+el valor de `EN`.
+
+### 9.4 Ciclos por muestra
+
+| Caso | Ciclos | Tiempo a 50 MHz |
+|---|---:|---:|
+| Filtro activo | 1 (`REPOSO`) + 3 × (5 + 1) + 1 (`SALIDA`) = 20 | 0,4 µs |
+| Bypass | 1 (`REPOSO`) + 1 (`SALIDA`) = 2 | 40 ns |
+| Par estéreo con filtro | 2 × 20 = 40 | 0,8 µs |
+| Disponible por periodo de muestreo a 44,1 kHz | 50 000 000 / 44 100 ≈ 1133 | 22,7 µs |
+
+El núcleo usa cerca del 3,5 % del tiempo disponible. Lo que más tarda en la
+práctica son los accesos del ARM por el puente liviano (escribir `CTRL` y
+`DATA_IN`, consultar `STATUS` y leer `DATA_OUT`), que se miden en la Fase 7.
+
+### 9.5 Ejemplo: dos muestras paso a paso
+
+Para que los números sean fáciles de seguir, este ejemplo usa un filtro
+inventado (no es uno de los del reproductor):
+
+- Etapa 0: `b0 = b1 = 0,5` (16384 en Q3.15) y el resto en 0, es decir
+  `y = 0,5·x + 0,5·x1`, el promedio de la muestra actual y la anterior.
+- Etapas 1 y 2: identidad (`b0 = 1,0`), el mismo relleno que usa el
+  pasa-altos, que solo ocupa una etapa.
+
+Dentro del filtro las muestras valen 256 veces más (24 bits).
+
+**Muestra 1:** el ARM escribe 1000 con el estado en cero.
+
+| Ciclo | Estado | `etapa` | `paso` | Qué hace | `acc` |
+|---:|---|---:|---:|---|---:|
+| 0 | `REPOSO` | — | — | `x = 1000 · 256 = 256 000`; `acc ← residuo = 0` | 0 |
+| 1 | `MAC` | 0 | 0 | `acc += b0 · x = 16384 · 256 000` | 4 194 304 000 |
+| 2 | `MAC` | 0 | 1 | `acc += b1 · x1 = 16384 · 0` | 4 194 304 000 |
+| 3–5 | `MAC` | 0 | 2–4 | suman o restan 0 | 4 194 304 000 |
+| 6 | `CIERRE_ETAPA` | 0 | — | `y = 4 194 304 000 / 32768 = 128 000`, residuo 0; guarda `x1 = 256 000`, `y1 = 128 000`; `x ← 128 000` | — |
+| 7–12 | `MAC`, `CIERRE_ETAPA` | 1 | 0–4 | identidad: `y = 128 000` | — |
+| 13–18 | `MAC`, `CIERRE_ETAPA` | 2 | 0–4 | identidad: `y = 128 000` | — |
+| 19 | `SALIDA` | — | — | `DATA_OUT = (128 000 + 128) >>> 8 = 500`; `LISTO ← 1` | — |
+
+**Muestra 2:** el ARM escribe 2000. Ahora `x1` de la etapa 0 guarda 256 000.
+
+| Ciclo | Estado | `paso` | Qué hace | `acc` |
+|---:|---|---:|---|---:|
+| 1 | `MAC` | 0 | `acc += 16384 · 512 000` | 8 388 608 000 |
+| 2 | `MAC` | 1 | `acc += 16384 · 256 000` (la muestra anterior) | 12 582 912 000 |
+| 3–5 | `MAC` | 2–4 | suman o restan 0 | 12 582 912 000 |
+| 6 | `CIERRE_ETAPA` | — | `y = 384 000`; guarda `x2 = 256 000`, `x1 = 512 000` | — |
+| 19 | `SALIDA` | — | `DATA_OUT = 384 000 / 256 = 1500` | — |
+
+La salida es (2000 + 1000) / 2 = 1500: `CIERRE_ETAPA` guardó la muestra
+anterior y la MAC la usó en el paso 1 de la muestra siguiente.
+
+Con los filtros reales la FSM recorre los mismos 20 ciclos. Cambian los
+valores: los pasos 3 y 4 (`a1` y `a2`) también restan algo, y como la
+división entre 32768 casi nunca es exacta, el residuo no es 0 y se suma al
+empezar la misma etapa en la muestra siguiente (realimentación del error de
+redondeo, sección 4 de [modelo-punto-fijo.md](modelo-punto-fijo.md)).
+
+---
+
+## 10. Cambios pendientes para la Fase 4
 
 Al implementar estos registros, `CONTRIBUTING.md` obliga a actualizar en el
 mismo cambio:
