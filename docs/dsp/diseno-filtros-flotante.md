@@ -82,7 +82,31 @@ de control que deja pasar la muestra sin tocar la MAC.
 ## 4. Respuesta en frecuencia
 
 En las tres frecuencias de muestreo cada filtro se comporta igual, aunque sus
-coeficientes sean distintos. El ecualizador por etapas:
+coeficientes sean distintos: las curvas de 8000, 16000 y 44100 Hz quedan
+prácticamente una sobre otra, salvo cerca de la frecuencia de Nyquist de cada
+una (fs/2), donde la respuesta cae.
+
+![Respuesta en frecuencia del pasa-altos](img/respuesta_highpass.png)
+
+*Pasa-altos: −3 dB en 800 Hz y pendiente de 40 dB por década por debajo del
+corte.*
+
+![Respuesta en frecuencia del pasa-banda](img/respuesta_bandpass.png)
+
+*Pasa-banda: 0 dB en el centro y −3 dB en 300 Hz y 3000 Hz. A 8 kHz el borde
+superior cae antes por estar cerca de Nyquist (ver limitaciones).*
+
+![Respuesta en frecuencia del ecualizador](img/respuesta_equalizer.png)
+
+*Ecualizador de 3 bandas completo, con la pre-ganancia de −6 dB incluida.*
+
+El ecualizador por etapas, a 44,1 kHz:
+
+![Etapas del ecualizador a 44,1 kHz](img/ecualizador_bandas_44100.png)
+
+*Cada línea punteada es una etapa (low-shelf con la pre-ganancia, peaking y
+high-shelf); la línea negra es el total: 0 dB en graves, −9 dB en 1 kHz y
+−2 dB en agudos.*
 
 **Limitaciones conocidas:**
 
@@ -112,6 +136,12 @@ equivale a `|a2| < 1` y `|a1| < 1 + a2`. Todas las etapas cumplen:
 La etapa más cercana al límite es el low-shelf de 200 Hz a 44,1 kHz
 (0,9832). Es la más sensible al redondeo de coeficientes en punto fijo.
 
+![Polos y ceros de los filtros a 44,1 kHz](img/polos_ceros_44100.png)
+
+*Polos (x) y ceros (o) de cada filtro a 44,1 kHz. Todos los polos quedan
+dentro del círculo unitario; los del low-shelf (etapa 0 del ecualizador) son
+los más cercanos al borde.*
+
 ---
 
 ## 6. Prueba con audio
@@ -125,6 +155,11 @@ reporta las muestras saturadas y el cambio de volumen. Con la opción
 | Pasa-altos | 0 | elimina el tono de 100 Hz |
 | Pasa-banda | 0 | atenúa los tonos de 100 Hz y 6 kHz |
 | Ecualizador | 0 | baja 9 dB el tono de 1 kHz |
+
+![Espectrograma de la señal de prueba con cada filtro](img/espectrograma_tonos_prueba.png)
+
+*Espectrograma de la señal de prueba (tonos de 100 Hz, 1 kHz y 6 kHz) sin
+filtrar y con cada filtro, generado con `--spectrogram`.*
 
 Los archivos de audio no se suben al repositorio.
 
@@ -142,6 +177,11 @@ en 100 Hz y no más de 1 dB de caída desde ~1,1 kHz.
 | Multiplicaciones por muestra | 5 | 17 | 31 | 81 |
 | Muestras guardadas | 4 | 16 | 30 | 80 |
 | Retardo a 2 kHz | ~0,05 ms | 1,00 ms | 0,94 ms | 0,91 ms |
+
+![Pasa-altos FIR contra IIR a 44,1 kHz](img/fir_vs_iir_44100.png)
+
+*Con la misma especificación, el biquad de 5 coeficientes y el FIR de 81
+coeficientes tienen casi la misma respuesta en la banda de paso y en 100 Hz.*
 
 **Decisión: biquad.** Ambos caben en el tiempo disponible (a 44,1 kHz y
 50 MHz hay unos 1133 ciclos por muestra), así que la decisión se basa en:
@@ -219,7 +259,15 @@ python dsp/model/export_coefficients.py           # tabla y análisis de formato
 ```
 
 Las salidas se guardan en `dsp/output/`, que no se sube al repositorio. Las
-imágenes de este documento se copiaron a `docs/dsp/img/`.
+imágenes de este documento son copias de `dsp/output/plots/` guardadas en
+`docs/dsp/img/`. Para actualizarlas después de cambiar los filtros:
+
+```bash
+python dsp/model/plot_response.py
+python dsp/model/filter_wav.py --test-signal --spectrogram
+python dsp/model/fir_vs_iir.py
+cp dsp/output/plots/*.png docs/dsp/img/
+```
 
 | Archivo | Contenido |
 |---|---|
