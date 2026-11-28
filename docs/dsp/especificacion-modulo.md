@@ -44,6 +44,9 @@ señales internas van en minúsculas y son las mismas que tendrá
 | Nombre | Qué es |
 |---|---|
 | `coef[0:14]` | banco de los 15 coeficientes de 18 bits |
+| `canal_act` | canal de la muestra en proceso, capturado de `CTRL.CANAL` |
+| `x` | entrada de la etapa en proceso, 24 bits |
+| `producto` | salida del multiplicador, 42 bits |
 | `acc` | acumulador de 48 bits de la MAC |
 | `etapa` | contador de la etapa en proceso (0 a 2) |
 | `paso` | contador del producto dentro de la etapa (0 a 4) |
@@ -319,7 +322,105 @@ El driver real limita la espera a un número de intentos (hoy 100), como
 
 ---
 
-## 8. Cambios pendientes para la Fase 4
+## 8. Ruta de datos
+
+### 8.1 Diagrama de bloques
+
+Los bloques en gris son registros que ve el ARM (sección 4); los demás son
+internos. La FSM no se dibuja conectada a cada bloque para no saturar el
+diagrama: controla todo a través de su estado y de los contadores `etapa` y
+`paso` (sección 8.3).
+
+```mermaid
+flowchart TB
+    CIDX["COEF_IDX"] -- "índice" --> COEF
+    CDAT["COEF_DATA"] -- "dato" --> COEF
+    DIN["DATA_IN<br/>16 b"] -- "× 256" --> X
+    CTRL["CTRL<br/>EN, LIMPIAR, CANAL"] -.-> FSM
+
+    COEF["coef[0:14]<br/>15 × 18 b"] --> MCO["Mux de coeficiente<br/>coef[etapa·5 + paso]"]
+    X["x<br/>24 b"] --> MOP["Mux de operando<br/>x, x1, x2, y1, y2 según paso"]
+    EST["Estado [canal_act][etapa]<br/>x1, x2, y1, y2: 24 b · residuo: 15 b"] --> MOP
+    MCO --> MUL["Multiplicador<br/>24 × 18 → 42 b"]
+    MOP --> MUL
+    MUL -- "producto" --> SUM["Suma o resta<br/>resta si paso ≥ 3"]
+    SUM --> ACC["acc<br/>48 b"]
+    ACC -- "realimentación" --> SUM
+    EST -- "residuo al iniciar la etapa" --> ACC
+    ACC --> RED["Redondeo y saturación<br/>y = sat24(redondear(acc))"]
+    RED -- "y, residuo nuevo" --> EST
+    RED -- "y: siguiente etapa" --> X
+    X -- "tras la etapa 2" --> SAL["Salida<br/>redondeo 24 → 16 b"]
+    SAL --> DOUT["DATA_OUT<br/>16 b"]
+    DIN -- "bypass" --> DOUT
+
+    FSM["FSM<br/>estado, etapa, paso, canal_act"] -.-> STATUS["STATUS<br/>LISTO, OCUPADO, SATURO"]
+
+    classDef arm fill:#eeeeee,stroke:#888888,color:#222222
+    class CTRL,CIDX,CDAT,DIN,DOUT,STATUS arm
+```
+
+Recorrido de una muestra con el filtro activo:
+
+1. Al escribir `DATA_IN`, la muestra se extiende a 24 bits (`<<8`) y se guarda
+   en `x`; `acc` se carga con el `residuo` de la etapa 0 del canal.
+2. Durante 5 ciclos, el multiplexor de operando y el de coeficiente eligen el
+   par que corresponde a `paso`, y `acc` suma o resta el `producto`.
+3. Al cerrar la etapa, el bloque de redondeo calcula `y` y el residuo nuevo,
+   el estado de la etapa se desplaza (`x2 ← x1 ← x`, `y2 ← y1 ← y`) y `y` pasa
+   a `x` como entrada de la siguiente etapa.
+4. Después de la etapa 2, `x` se redondea a 16 bits, se satura y va a
+   `DATA_OUT`.
+
+En bypass, `DATA_IN` va directo a `DATA_OUT` y el núcleo no toca el estado.
+
+### 8.2 Anchos de las señales
+
+Son los mismos de [modelo-punto-fijo.md](modelo-punto-fijo.md), sección 1.
+
+| Señal | Ancho | Formato | De dónde sale |
+|---|---:|---|---|
+| `DATA_IN`, `DATA_OUT` | 16 bits | Q1.15 | registros del ARM |
+| `x`, `x1`, `x2`, `y1`, `y2` | 24 bits | Q1.23 | muestra `<<8` o salida de una etapa |
+| `coef[i]` | 18 bits | Q3.15 | `COEF_DATA` bits 17:0 |
+| `producto` | 42 bits | Q4.38 | operando (24) × coeficiente (18) |
+| `acc` | 48 bits | Q10.38 | suma de hasta 5 productos más el residuo |
+| `q` | 33 bits | — | `(acc + 2^14) >>> 15`, antes de saturar |
+| `residuo` | 15 bits | — | `acc − q · 2^15`, en [−2^14, 2^14) |
+| `y` | 24 bits | Q1.23 | `q` saturado a 24 bits |
+
+### 8.3 Cómo controla la FSM la ruta de datos
+
+La FSM no necesita una señal de control por bloque: casi todo se deriva de
+su estado y de los contadores.
+
+| Qué se controla | Cómo |
+|---|---|
+| Operando del multiplicador | `paso`: 0 = `x`, 1 = `x1`, 2 = `x2`, 3 = `y1`, 4 = `y2` de `[canal_act][etapa]` |
+| Coeficiente del multiplicador | `coef[etapa·5 + paso]` |
+| Sumar o restar | resta cuando `paso ≥ 3` (los productos de `a1` y `a2`) |
+| Carga de `acc` | con el `residuo` de `[canal_act][etapa]` al empezar cada etapa |
+| Escritura del estado | solo en `CIERRE_ETAPA`, en `[canal_act][etapa]` |
+| Borrado del estado | `CTRL.LIMPIAR = 1` o escritura de `COEF_DATA` con índice válido: los dos canales y `saturo` a cero |
+
+### 8.4 Recursos esperados
+
+Es una estimación para comparar con lo que reporte Quartus en la Fase 6.
+
+| Recurso | Estimación | Detalle |
+|---|---|---|
+| Bloques DSP | 1 | multiplicador 24 × 18 en modo 27 × 27 |
+| Flip-flops del estado | 666 | 2 canales × 3 etapas × (4 × 24 + 15) |
+| Flip-flops de coeficientes | 270 | 15 × 18 |
+| Otros flip-flops | ~150 | `acc`, `x`, registros del ARM, contadores y FSM |
+| ALMs | unos cientos | sobre todo el multiplexor de operando (elige entre 25 valores de 24 bits) |
+
+La Cyclone V de la DE1-SoC (5CSEMA5) tiene 32 070 ALMs y 87 bloques DSP, así
+que el módulo debería ocupar menos del 5 % de la FPGA.
+
+---
+
+## 9. Cambios pendientes para la Fase 4
 
 Al implementar estos registros, `CONTRIBUTING.md` obliga a actualizar en el
 mismo cambio:
