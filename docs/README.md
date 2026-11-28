@@ -27,7 +27,7 @@ Fecha de este estado: 2026-11-26. La base completa (hardware y software) se prob
 | Audio (codec WM8731 a 44.1 kHz) | Funciona |
 | ADC (potenciómetro de volumen) | Funciona |
 | Controlador de 7 segmentos (hardware propio) | Funciona |
-| Filtro DSP (hardware propio) | RTL de la cascada de 3 biquads (versión `0x02`); prueba de humo en simulación |
+| Filtro DSP (hardware propio) | RTL de la cascada de 3 biquads (versión `0x02`), verificado en simulación contra el modelo bit-exacto |
 | Pantalla externa para metadatos (VGA/LCD) | Pendiente, fuera de la base |
 | Esqueleto de software del reproductor (`Reproductor/sw/`) | Hecho: compila y corre; módulos del enunciado con `TODO` |
 | Funcionalidad del enunciado | Pendiente (ver sección 6) |
@@ -212,8 +212,9 @@ RTL reproduce bit a bit, están en [`dsp/README.md`](dsp/README.md). La especifi
 
 Al reset cada etapa es la identidad (`b0 = 1,0`), así que con EN = 1 y sin cargar coeficientes el
 audio pasa sin cambios. Uso por muestra: escribir CTRL (EN y CANAL) → escribir DATA_IN → esperar
-STATUS.LISTO → leer DATA_OUT. Verificado en simulación (`tests/hw/`, 12 casos); en la placa se
-probó la versión `0x01` (`tests/hex-dsp/`).
+STATUS.LISTO → leer DATA_OUT. Verificado en simulación (`tests/hw/`): 12 casos de humo en Questa y
+23 pruebas en cocotb contra el modelo bit-exacto (vectores, estéreo, cambio de filtro y tiempos
+ciclo a ciclo); en la placa se probó la versión `0x01` (`tests/hex-dsp/`).
 
 ### 3.10 Pantalla externa para metadatos (pendiente, fuera de la base)
 
