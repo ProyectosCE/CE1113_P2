@@ -1,0 +1,57 @@
+# Pruebas del modelo DSP en Python (dsp/): diseño de los filtros, modelo en punto fijo
+# bit-exacto y vectores de prueba del testbench (docs/dsp/).
+#
+# Va aparte de ci.yml porque valida otra cosa y solo corre cuando cambia algo del modelo.
+# Se prueba con la versión mínima soportada (3.11) y con una reciente.
+name: Modelo DSP
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "dsp/**"
+      - "scripts/dsp/**"
+      - ".github/workflows/dsp-modelo.yml"
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "dsp/**"
+      - "scripts/dsp/**"
+      - ".github/workflows/dsp-modelo.yml"
+
+concurrency:
+  group: dsp-modelo-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: Pruebas del modelo DSP (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.14"]
+    env:
+      MPLBACKEND: Agg   # matplotlib sin pantalla
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: dsp/requirements.txt
+
+      - name: Instalar dependencias
+        run: python -m pip install -r dsp/requirements.txt
+
+      - name: Verificar el entorno
+        run: python dsp/model/check_env.py
+
+      - name: pytest
+        working-directory: dsp
+        run: python -m pytest -v
