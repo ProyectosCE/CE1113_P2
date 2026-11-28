@@ -333,9 +333,7 @@
   <parameter name="inputClockFrequency" value="0" />
   <parameter name="resetSynchronousEdges" value="NONE" />
  </module>
- <module name="dsp_filter" kind="dsp_filter" version="1.0" enabled="1">
-  <parameter name="NUM_COEF" value="16" />
- </module>
+ <module name="dsp_filter" kind="dsp_filter" version="1.0" enabled="1" />
  <module name="hex_ctrl" kind="hex_ctrl" version="1.0" enabled="1" />
  <module name="hps_0" kind="altera_hps" version="25.1" enabled="1">
   <parameter name="ABSTRACT_REAL_COMPARE_TEST" value="false" />
