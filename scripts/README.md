@@ -30,6 +30,12 @@ Todos los scripts viven en `scripts/` (los ejemplos solo tienen Makefiles), por 
 |---|---|
 | `gdb-server.sh` | Arranca el gdb-server de Ashling (incluido en Quartus) para el Cortex-A9, puerto 3334 |
 
+**`scripts/hw/`** (verificación del hardware propio)
+
+| Script | Funcion |
+|---|---|
+| `docker.sh` | Lint y simulación en Docker con Verilator y cocotb (imagen en `Dockerfile`; ver `tests/hw/README.md`) |
+
 Plantilla de pines: `de1-soc-pines.qsf` (CLOCK, KEY, SW, LEDR, HEX0-5).
 
 ## Requisitos

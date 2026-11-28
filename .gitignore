@@ -136,6 +136,11 @@ questa.mpf
 *.cr.mti
 *.mti
 
+# ---- Simulacion con Verilator / cocotb (scripts/hw/docker.sh) ---------------
+obj_dir/
+sim_build/
+results.xml
+
 # ---- Audio / datos binarios pesados (no suben a GitHub) ---------------------
 # Las canciones de prueba para la SD no deben versionarse (peso y copyright).
 *.wav
