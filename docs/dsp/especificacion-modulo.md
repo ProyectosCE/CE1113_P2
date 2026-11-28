@@ -522,7 +522,60 @@ redondeo, sección 4 de [modelo-punto-fijo.md](modelo-punto-fijo.md)).
 
 ---
 
-## 10. Cambios pendientes para la Fase 4
+## 10. Diagramas de tiempo
+
+Convenciones de los tres diagramas:
+
+- El ciclo 0 es el ciclo en que el ARM pone `avs_write = 1`; la escritura
+  toma efecto en el flanco al final de ese ciclo, así que sus efectos se ven
+  desde el ciclo 1.
+- Las lecturas tienen latencia de 1 ciclo: el dato aparece en `avs_readdata`
+  el ciclo siguiente a `avs_read = 1`.
+- El ARM real no escribe ni lee en ciclos seguidos (cada acceso por el puente
+  liviano tarda varios ciclos); aquí se dibujan juntos para que el diagrama
+  sea corto. El comportamiento del módulo es el mismo.
+
+Las fuentes de los diagramas están en `img/*.json` (formato WaveDrom). Para
+modificarlos se pega el `.json` en el editor de WaveDrom
+(<https://wavedrom.com/editor.html>) y se exporta de nuevo el `.svg` con el
+mismo nombre.
+
+### 10.1 Procesamiento de una muestra con el filtro activo
+
+![Procesamiento de una muestra](img/tiempo-procesamiento.svg)
+
+- En el ciclo 0 el ARM escribe la muestra en `DATA_IN`. En el flanco de ese
+  ciclo `OCUPADO` sube y `LISTO` baja.
+- La FSM hace 5 ciclos de `MAC` y 1 de `CIERRE` por etapa (ciclos 1 a 18; del
+  8 al 16 se omiten porque repiten el patrón).
+- En el ciclo 19 (`SALIDA`) se escribe `DATA_OUT`; desde el ciclo 20
+  `LISTO = 1` y `OCUPADO = 0`.
+- El ARM lee `STATUS` con `LISTO = 1` y después `DATA_OUT` con el resultado.
+
+### 10.2 Carga de un coeficiente
+
+![Carga de un coeficiente](img/tiempo-carga-coeficiente.svg)
+
+- El ARM escribe 6 en `COEF_IDX` y luego `0xFFFF1650` en `COEF_DATA`
+  (el ejemplo de la sección 5.4).
+- En el flanco de la escritura de `COEF_DATA`, `coef[6]` toma los bits 17:0
+  (`0x31650`) y, a la vez, el estado de los dos canales y `SATURO` se borran.
+- La lectura de `COEF_DATA` devuelve el coeficiente extendido en signo.
+- `OCUPADO` está en 0 todo el tiempo: los coeficientes solo se cargan con el
+  núcleo en reposo (sección 7).
+
+### 10.3 Procesamiento de una muestra en bypass
+
+![Procesamiento en bypass](img/tiempo-bypass.svg)
+
+- Con `CTRL.EN = 0`, la FSM pasa de `REPOSO` directo a `SALIDA`.
+- `LISTO` vuelve a 1 en el ciclo 2 y `DATA_OUT` es igual a la muestra de
+  entrada.
+- El estado del filtro (`x1`, `x2`, `y1`, `y2`, `residuo`) no cambia.
+
+---
+
+## 11. Cambios pendientes para la Fase 4
 
 Al implementar estos registros, `CONTRIBUTING.md` obliga a actualizar en el
 mismo cambio:
